@@ -163,11 +163,13 @@ I think this syntax is efficient since often times, especially in linguistics, y
 
 ### Currently working on:
 
-None (for now)
+- implementing right contexts
+- implementing dual sided contexts
+- OSL / ISL toggle
 
 ### Definite additions:
 - right context handling
-- composition
+- composition / intersection
 - word initial / final detection rules
 - handle insertion rules
 - have an OSL / ISL mode switch
