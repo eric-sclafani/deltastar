@@ -4,12 +4,12 @@
     
 class DFST:
     """ 
-    This class contains code for constructing deterministic finite-state string transducers
+    This class contains code for constructing deterministic finite-state string to string transducers
     
     -----------
     Attributes:
     -----------
-        delta (set(tuples)): set containing all possible transitions in the machine
+        delta (dict): dict containing all possible transitions in the machine
         
         F (tuple): final function (not implemented yet, code is outdated)
         
@@ -20,8 +20,6 @@ class DFST:
     --------
     Methods:
     --------
-    
-        transitions (delta): parses input transitions and stores them in a dict
         
         sigma: acquires all input symbols and puts them into a set
         
@@ -41,7 +39,7 @@ class DFST:
         ----------
         Arguments:
         ----------
-            delta (set(tuples)): set of transitions
+            delta (dict): dict of transitions
             
             F (tuple): final function, (not implemented yet, code is outdated)
             
@@ -61,42 +59,12 @@ class DFST:
         
         self.q0 = q0                            
         self.v0 = v0                            
-        self.delta = self.transitions(delta)    
+        self.delta = delta
         self.Q = list(self.delta.keys())        
         self.F = self.final(F)                  
         
         self.sigma = self.sigma()              
         self.gamma = self.gamma()              
-   
-    def transitions(self, delta):
-        """ Takes a set of transitions and translates it into a dictionary:
-
-                        input:  set(tuples) = { (PREVIOUS_STATE, SYMBOL, NEXT_STATE, NEXT_SYMBOL), ...}
-                                        
-                        output: dict = { PREVIOUS_STATE : {SYMBOL : [NEXT_STATE, NEXT_SYMBOL],...}, ...}
-        ----------
-        Arguments:
-        ----------
-            delta (set): set of transitions to turn into a dict
-            
-        --------    
-        Returns:
-        --------
-            d (dict): dictionary of transitions
-        """
-        d = {}
-        for entry in delta:
-            
-            previous_state = str(entry[0])      
-            symbol = str(entry[1])                       
-            next_state = entry[2]
-            next_symbol = entry[3]
-        
-            if previous_state not in d: 
-                d[previous_state] = {symbol : [next_state, next_symbol]}
-            else:
-                d[previous_state][symbol] = [next_state, next_symbol]
-        return d
     
     def sigma(self):
         """ Acquires the set of all input symbols from delta
@@ -173,57 +141,56 @@ class DFST:
         output = output.replace("λ", "") # lambda replacing for deletion rules (see rewrite function for more details)
         
         return output
-    
-    
-    
+ 
 def generate_transitions(q, contexts, IN, OUT):
     
-    delta = set()
+    delta = {}
     cfx = lambda string: f"<{string}>" 
     
-    for CON in contexts:
+    for CON in contexts: # for every specified context
         for _in, _out in zip(IN, OUT):
             con = ""             
             context = CON[:CON.find("_")]
             current_state = q  
             
-            for sym in context:                                
-                con += sym                                              
-                delta.add((current_state, sym, cfx(con), sym))           
-                delta.add((current_state, "?", q, "?"))                
-                current_state = cfx(con)        
+            for sym in context: # for every symbol in currently selected context                           
+                con += sym # build each state symbol by symbol 
                 
-                if len(con) == 1: # if first symbol in the context, add self loop  (i.e. first symbol in a context can be repeated arbitrary times)
-                    delta.add((current_state, sym, current_state, sym)) 
+                if current_state not in delta:
+                    delta[current_state] = {sym : [cfx(con), sym]}
+                else:
+                    delta[current_state][sym] = [cfx(con), sym]
+                delta[current_state]["?"] = [q, "?"] # unspecified transitions. ? is a placeholder cf Chandlee 2014
+                         
+                if len(con) == 1: # first symbol in a context can be repeated arbitrary times
+                    delta[cfx(con)] = { sym: [cfx(con), sym]}
                 
-                
-                # # generate prefix transitions
-                # prefix = ""
-                # for char in con:
-                #     prefix += char
-                #     for trans in delta:
-                        
-                #         # character level transition creation
-                #         if current_state == trans[0] and trans[1] != char: # check if outgoing transition already exists with input char from current state
-                           
-                        
-                #         # if prefix != con: # prevent inadvertent self loops 
-                           
-                        
+                prefix = ""
+                for char in con: # for every symbol in the current state
+                    prefix += char
+                    
+                    # attempt to find prefix transitions
+                    try:
+                        delta[current_state][prefix] # check if outgoing transition already exists with input prefix from current state
+                    except KeyError:
+                        if cfx(prefix) in delta and cfx(prefix) != current_state: # check if there's a <prefix> state and disallow inadvertent self loops
+                            delta[current_state][char] = [cfx(prefix), char]
+                               
+                current_state = cfx(con)         
                       
                         
                         
                                         
-            # in change state 
-            delta.add((current_state, _in, q, _out)) #! needs to be replaced with new transition functionality             
-            delta.add((current_state, "?", q, "?"))    
+            # # in change state 
+            # delta.add((current_state, _in, q, _out)) #! needs to be replaced with new transition functionality             
+            # delta.add((current_state, "?", q, "?"))    
             
             
-    if not contexts:
-        current_state = "<>"
-        for _in, _out in zip (IN, OUT):  
-            delta.add((current_state, _in, current_state, _out))
-            delta.add((current_state, "?", current_state, "?"))
+    # if not contexts:
+    #     current_state = "<>"
+    #     for _in, _out in zip (IN, OUT):  
+    #         delta.add((current_state, _in, current_state, _out))
+    #         delta.add((current_state, "?", current_state, "?"))
                        
     
     return delta
@@ -272,7 +239,7 @@ def rewrite (s1:str, s2:str, context="", v0="", displayparams=False) -> DFST:
     return lambda string : fst.T(string)
 
 
-test = rewrite("a", "b", "acab_", displayparams=True)
+test = rewrite("a", "b", "acab c _", displayparams=True)
 # print(test("bcaaaa"))
 
 # test2 = rewrite("a", "b", "c_")
