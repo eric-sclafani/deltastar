@@ -161,9 +161,8 @@ def generate_transitions(q, contexts, IN, OUT):
                     
                 previous_state = cfx(current_state)
                 
-                
             # in change state (state that has a transduction transition)
-            if cfx(_in) in delta and cfx(_in) != previous_state:
+            if cfx(_in) in delta and cfx(_in) != previous_state: # transition back to state corresponding to _in symbol, or initial state
                 delta[previous_state] = {_in : [cfx(_in), _out]}
             else:
                 delta[previous_state] = {_in : [q, _out]}
@@ -184,8 +183,7 @@ def generate_transitions(q, contexts, IN, OUT):
                             # without this check, false transitions can be created
                             if state[-1] + char == prefix:
                                 delta[cfx(state)][prefix[-1]] = [cfx(prefix), prefix[-1]]
-                        
-                                     
+                             
                     # this block attempts to find character level transitions 
                     # (needed because the above prefix handling stops on the last character aka when prefix == state. The last character can hold a transition)
                     try:
