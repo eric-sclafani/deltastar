@@ -87,7 +87,7 @@ class DFST:
         return set(sym[1] for transitions in self.delta.values() for sym in list(transitions.values()))
     
     def final(self, F):
-        """Not implemented yet"""
+        """Not implemented yet. Will be returned to when right sided contexts are implemented"""
         
         # outdated code
         # ~~~ HIGHLY WIP ~~~
@@ -144,48 +144,69 @@ class DFST:
  
 def generate_transitions(q, contexts, IN, OUT):
     
+    
     delta = {}
+    state_names = []
     cfx = lambda string: f"<{string}>" 
     
     for CON in contexts: # for every specified context
         for _in, _out in zip(IN, OUT):
-            con = ""             
+            current_state = ""             
             context = CON[:CON.find("_")]
-            current_state = q  
+            previous_state = q  
             
-            for sym in context: # for every symbol in currently selected context                           
-                con += sym # build each state symbol by symbol 
+            #! I needed to separate context and prefix transitions in order to account for multiple contexts specified at once
+            #! i.e. it is possible to transition from one rewrite rule state to a different rewrite rule state (totally not confusing :P)
+            
+            # this loop generates all context transitions
+            for sym in context:                           
+                current_state += sym 
+                state_names.append(current_state)
                 
-                if current_state not in delta:
-                    delta[current_state] = {sym : [cfx(con), sym]}
+                if previous_state not in delta:
+                    delta[previous_state] = {sym : [cfx(current_state), sym]}
                 else:
-                    delta[current_state][sym] = [cfx(con), sym]
-                delta[current_state]["?"] = [q, "?"] # unspecified transitions. ? is a placeholder cf Chandlee 2014
+                    delta[previous_state][sym] = [cfx(current_state), sym]
+                delta[previous_state]["?"] = [q, "?"] # unspecified transitions. ? is a placeholder cf Chandlee 2014
                          
-                if len(con) == 1: # first symbol in a context can be repeated arbitrary times
-                    delta[cfx(con)] = { sym: [cfx(con), sym]}
+                if len(current_state) == 1: # first symbol in a context can be repeated arbitrary times
+                    delta[cfx(current_state)] = { sym: [cfx(current_state), sym]}
+                    
+                previous_state = cfx(current_state)
                 
-                prefix = ""
-                for char in con: # for every symbol in the current state
+                
+            # in change state (state that has a transduction transition)
+            if cfx(_in) in delta:
+                delta[previous_state] = {_in : [cfx(_in), _out]}
+            else:
+                delta[previous_state] = {_in : [q, _out]}
+            delta[previous_state]["?"] = [q, "?"]
+            
+            
+            # this loop generates all prefix transitions
+            for state in state_names: # for every state, find all possible prefix transitions
+                prefix= ""
+                for char in state:
                     prefix += char
                     
-                    # attempt to find prefix transitions
+                    # this block attempts to find prefix level transitions
+                    if cfx(prefix) in delta and prefix != state: # and disallow inadvertent self loops
+                        try:
+                            delta[cfx(state)][prefix[-1]]
+                        except KeyError:
+                            if cfx(state[-1] + char) == cfx(prefix):# very important check: if the last symbol of the state + char == the prefix
+                                delta[cfx(state)][prefix[-1]] = [cfx(prefix), prefix[-1]]
+                        
+                                     
+                    # this block attempts to find character level transitions 
+                    # (needed because the above prefix handling stops on the last character aka when prefix == state)
                     try:
-                        delta[current_state][prefix] # check if outgoing transition already exists with input prefix from current state
+                        delta[cfx(state)][char] # check if outgoing transition already exists with input char from state
                     except KeyError:
-                        if cfx(prefix) in delta and cfx(prefix) != current_state: # check if there's a <prefix> state and disallow inadvertent self loops
-                            delta[current_state][char] = [cfx(prefix), char]
-                               
-                current_state = cfx(con)         
-                      
-                        
-                        
-                                        
-            # # in change state 
-            # delta.add((current_state, _in, q, _out)) #! needs to be replaced with new transition functionality             
-            # delta.add((current_state, "?", q, "?"))    
-            
-            
+                        if cfx(char) in delta:
+                            delta[cfx(state)][char] = [cfx(char), char]
+                            
+                     
     # if not contexts:
     #     current_state = "<>"
     #     for _in, _out in zip (IN, OUT):  
