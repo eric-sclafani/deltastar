@@ -165,15 +165,16 @@ I think this syntax is efficient since often times, especially in linguistics, y
 
 - implementing right contexts
 - implementing dual sided contexts
-- OSL / ISL toggle
 
-### Definite additions:
+### Definite additions (no order):
 - right context handling
 - composition / intersection
 - word initial / final detection rules
 - handle insertion rules
 - have an OSL / ISL mode switch
 - dot file drawing capability (similar to Pynini)
+- make user able to manually add / delete transitions?
+- make a model pickle function?
 
 
 ### Possible additions:
