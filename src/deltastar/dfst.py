@@ -1,5 +1,9 @@
 # -*- coding: utf8 -*-
 
+import PySimpleGUI as sg
+import pydot
+
+
 # Eric Sclafani
 
 cfx = lambda string: f"<{string}>"                # circumfix func
@@ -9,7 +13,7 @@ class DFST:
     
     def __init__(self, s1:str, s2:str, contexts=[], v0=""):
         
-        self.q0 = "<>"                          
+        self.q0 = "<λ>"                          
         self.v0 = v0
         self.s1 = s1
         self.s2 = s2  
@@ -83,7 +87,7 @@ class DFST:
                      
                     delta[previous_state]["?"] = [self.q0, "?"]
 
-                    print(delta)   
+                    # print(delta)   
                     
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ this block generates all right context transitions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if CON[1]:
@@ -114,8 +118,12 @@ class DFST:
                         previous_state = cfx(next_state)
                     
                     # in change state
+                    #! CURRENT BUG: transduction transitions getting overwritten with multiple contexts
                     delta[previous_state] = {right_context[-1] : [self.q0, _out+CON[1]]}
                     delta[previous_state]["?"] = [self.q0, next_state+"?"]
+                    # print(delta)
+                
+                
                 
                 
                 #! I needed to separate context and prefix transitions in order to account for multiple contexts specified at once
@@ -144,6 +152,7 @@ class DFST:
                 #         except KeyError:
                 #             if cfx(char) in delta:
                 #                 delta[cfx(state)][char] = [cfx(char), char]
+                
         
         # context free rules              
         if not contexts:
@@ -165,7 +174,36 @@ class DFST:
     
     def remove_transition(self, trans:tuple):
         pass
+    
+    def to_graph(self, graph_name="my_machine.png", show=False):
         
+        if not graph_name.endswith(".png"):
+            raise ValueError("only .png files can be exported")
+        
+        graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR")
+        
+        for state, transitions in self.delta.items():
+            for in_sym, out_trans in transitions.items():
+                graph.add_node(pydot.Node(dfx(state), shape="circle",))
+                graph.add_node(pydot.Node(dfx(out_trans[0]), shape="circle"))
+                graph.add_edge(pydot.Edge(dfx(state),dfx(out_trans[0]),label=f"{in_sym}\:{out_trans[1]}"))
+        
+        graph.write_png(graph_name)
+        if show:
+            sg.theme("DarkAmber")
+            
+            layout = [ [sg.Image(graph_name)],
+                       [sg.Quit(key="Quit",)]
+                     ]
+            
+            window = sg.Window(graph_name.replace(".png", ""), layout=layout, element_justification="c")
+          
+            while True: # main event loop
+                event, values = window.read()
+                if event == sg.WIN_CLOSED or event == "Quit":
+                    break
+            window.close()
+ 
     def rewrite(self, s):
         """ Given string s, perform transductions on it according to self.delta
         
@@ -198,8 +236,5 @@ class DFST:
  
 
 
-test2 = DFST("a", "b", ["_c",])
+test2 = DFST("a", "b", ["b_",])
 test2.display_params()
-print(test2.rewrite("aaaaac"))
-
-
