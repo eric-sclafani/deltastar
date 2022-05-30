@@ -18,7 +18,7 @@ class DFST:
         self.s1 = s1
         self.s2 = s2  
         self.contexts = contexts                      
-        self.delta, self.state_names = self.generate_delta(self.s1, self.s2, self.contexts)
+        self.delta = self.generate_delta(self.s1, self.s2, contexts)
         self.Q = list(self.delta.keys())        
         
         self.sigma = set(sym for transitions in self.delta.values() for sym in transitions.keys())            
@@ -33,28 +33,27 @@ class DFST:
         
         print(f"{'~'*7}Delta:{'~'*7}")
         
-        for state, trans in sorted(self.delta.items()):
+        for state, trans in sorted(self.delta.items(), ):
             for s, t in trans.items():
                 print(f"{state} --({s} : {t[1]})--> {t[0]}")
         print("~"*20,"\n")
         
         
-    def generate_delta(self, s1, s2, contexts):
+    def generate_transitions(self, s1, s2, contexts):
         
         
         IN, OUT = s1.split(), s2.split()
         if not IN or not OUT:
             raise NotImplementedError("Insertion and deletion rules not implemented yet. Stay tuned!")
-            
-        delta = {}
-        state_names = set()
         
+        delta = set()
         
         for con in contexts: 
             for _in, _out in zip(IN, OUT):
                 
+                # delta = defaultdict(lambda: defaultdict(dict))
                 CON = con.split("_") # splits the current context into a double. right side empty == left context rule, left side empty == right context rule
-                
+   
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ this block generates all left context transitions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if CON[0]: 
                     next_state = ""                 
@@ -63,31 +62,27 @@ class DFST:
                     
                     for sym in left_context:                           
                         next_state += sym 
-                        state_names.add((next_state, "LCON"))
                         
-                        if previous_state not in delta:
-                            delta[previous_state] = {sym : [cfx(next_state), sym]}
-                        else:
-                            delta[previous_state][sym] = [cfx(next_state), sym]
-                        delta[previous_state]["?"] = [self.q0, "?"] # unspecified transitions. ? is a placeholder cf Chandlee 2014
-                           
-                        if len(next_state) == 1: # first symbol in a context can be repeated arbitrary times
-                            delta[cfx(next_state)] = { sym: [cfx(next_state), sym]}
+                        delta.add( (previous_state, sym, cfx(next_state), sym) )
+                        delta.add( (previous_state, "?", self.q0, "?") ) # unspecified transitions. ? is a placeholder cf Chandlee 2014
                         
-                        previous_state = cfx(next_state)
-                          
-                    #! CURRENT BUG: transduction transition is being overwritten when mutiple mappings are specified.          
-                    # in change state (state that has a transduction transition)
-                    if cfx(_in) in delta and cfx(_in) != previous_state: # transition back to state corresponding to _in symbol
-                        #delta[previous_state] = {_in : [cfx(_in), _out]}
-                        delta[previous_state][_in] = [cfx(_in), _out]
+                        if len(next_state) == 1: # beginning of left context can repeat arbitrary number of times
+                            delta.add( (cfx(next_state), sym, cfx(next_state), sym) )
                         
-                    else: 
-                        delta[previous_state] = {_in : [self.q0, _out]}
-                     
-                    delta[previous_state]["?"] = [self.q0, "?"]
-
-                    # print(delta)   
+                        previous_state = cfx(next_state) # update previous_state 
+                        
+                        if next_state == left_context: # reached the last state of context
+                            delta.add( (previous_state, _in, self.q0, _out) )
+                            delta.add( (previous_state, "?", self.q0, "?") )
+                            
+                        
+                            
+                        #     if cfx(_in) in delta and cfx(_in) != previous_state: # transition back to state corresponding to _in symbol
+                        #         delta[previous_state][_in] = [cfx(_in), _out] 
+                        #     else: 
+                        #         delta[previous_state][_in] = [self.q0, _out]
+                            
+                        #     delta[previous_state]["?"] = [self.q0, "?"]
                     
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ this block generates all right context transitions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if CON[1]:
@@ -99,7 +94,7 @@ class DFST:
                     for sym in right_context[:-1]:
                         
                         next_state += sym
-                        state_names.add((next_state,"RCON"))
+
                         
                         if previous_state not in delta:
                             delta[previous_state] = {sym : [cfx(next_state),"λ"]} # all transitions moving to the right will output the empty string 
@@ -118,12 +113,11 @@ class DFST:
                         previous_state = cfx(next_state)
                     
                     # in change state
-                    #! CURRENT BUG: transduction transitions getting overwritten with multiple contexts
                     delta[previous_state] = {right_context[-1] : [self.q0, _out+CON[1]]}
                     delta[previous_state]["?"] = [self.q0, next_state+"?"]
-                    # print(delta)
+                    
                 
-                
+               
                 
                 
                 #! I needed to separate context and prefix transitions in order to account for multiple contexts specified at once
@@ -156,21 +150,33 @@ class DFST:
         
         # context free rules              
         if not contexts:
-            for _in, _out in zip (IN, OUT):  
-                delta[self.q0] = {_in : [self.q0, _out]}
-                delta[self.q0]["?"] = [self.q0, "?"]            
-        return delta, state_names         
+            for _in, _out in zip (IN, OUT): 
+                delta.add((self.q0, _in, self.q0, _out))
+                delta.add((self.q0, "?", self.q0, "?"))
+                 
+        return delta     
+    
+    def generate_delta(self, s1, s2, contexts):
+        
+        delta = {}
+        transitions = self.generate_transitions(s1, s2, contexts)
+        
+        for trans in transitions:
+            prev_state, in_sym, next_state, out_sym = trans
+            if prev_state not in delta:
+                delta[prev_state] = {in_sym : [next_state, out_sym]}
+            else:
+                delta[prev_state][in_sym] = [next_state, out_sym]
+         
+        return delta
     
     
     def add_transition(self, trans:tuple):
         #! untested
-        prev_state, next_state = trans[0], trans[2]
-        in_symbol, out_symbol = trans[1], trans[3]
-        
-        try:
-            self.delta[prev_state][in_symbol] = [next_state, out_symbol]
-        except KeyError:
-            self.delta[prev_state] = {in_symbol: [next_state, out_symbol]}    
+        assert len(trans) == 4, "transition must be input as (prev_state, in_symbol, next_state, out_symbol)"
+        prev_state, in_symbol, next_state, out_symbol = trans
+        self.delta[prev_state][in_symbol] = [next_state, out_symbol]
+           
     
     def remove_transition(self, trans:tuple):
         pass
@@ -191,11 +197,7 @@ class DFST:
         graph.write_png(graph_name)
         if show:
             sg.theme("DarkAmber")
-            
-            layout = [ [sg.Image(graph_name)],
-                       [sg.Quit(key="Quit",)]
-                     ]
-            
+            layout = [[sg.Image(graph_name)], [sg.Quit(key="Quit",)]]
             window = sg.Window(graph_name.replace(".png", ""), layout=layout, element_justification="c")
           
             while True: # main event loop
@@ -229,12 +231,13 @@ class DFST:
         # final function
         for pair in self.state_names:
             if pair[1] == "RCON":
-                if pair[0] == dfx(state):
+                if pair[0] == dfx(state): # if we land in a right context state, output that states name
                     output += pair[0]
                 
         return output
  
 
 
-test2 = DFST("a", "b", ["bcd_",])
+test2 = DFST("a", "b", ["acab_"])
 test2.display_params()
+test2.to_graph()
