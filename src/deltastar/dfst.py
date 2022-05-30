@@ -83,7 +83,7 @@ class DFST:
                         delta[previous_state][_in] = [cfx(_in), _out]
                         
                     else: 
-                        delta[previous_state][_in] = [self.q0, _out]
+                        delta[previous_state] = {_in : [self.q0, _out]}
                      
                     delta[previous_state]["?"] = [self.q0, "?"]
 
@@ -236,5 +236,5 @@ class DFST:
  
 
 
-test2 = DFST("a", "b", ["b_",])
+test2 = DFST("a", "b", ["bcd_",])
 test2.display_params()
