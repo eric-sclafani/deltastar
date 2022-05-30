@@ -27,6 +27,9 @@ or
 pip3 install deltastar
 ```
 
+## Disclaimer
+
+
 ## Usage and current implementations
 
 All transducers must be created using the same pattern:
@@ -157,7 +160,7 @@ So you can think of the above rewrite rule as a compilation of the following rul
 ("a", "b","y_")
 ("a", "b","z_")
 ```
-I think this syntax is efficient since often times, especially in linguistics, you're going to have a grouping of symbols that need to experience a change.
+I think this syntax is efficient since often times, especially in linguistics, you're going to have a **grouping of symbols** that need to experience a change.
 
 ## Future plans
 
@@ -170,10 +173,10 @@ I think this syntax is efficient since often times, especially in linguistics, y
 - right context handling
 - composition / intersection
 - word initial / final detection rules
-- handle insertion rules
+- handle insertion and deletion rules (INCLUDE EOW / BOW)
 - have an OSL / ISL mode switch
 - dot file drawing capability (similar to Pynini)
-- make user able to manually add / delete transitions?
+- make user able to manually add / delete transitions
 - make a model pickle function?
 
 
