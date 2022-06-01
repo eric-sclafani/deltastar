@@ -1,16 +1,21 @@
 # -*- coding: utf8 -*-
 
+# Eric Sclafani
 from collections import defaultdict
+from dataclasses import dataclass
 import PySimpleGUI as sg
 import pydot
+from transitions import get_transitions, dfx, cfx
 
-
-# Eric Sclafani
-
-cfx = lambda string: f"<{string}>"                # circumfix func
-dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
     
+# @dataclass
 class DFST:
+    
+    # s1:str
+    # s2:str
+    # contexts:list
+    # q0:str = "<λ>" 
+    # v0:str = ""
     
     def __init__(self, s1:str, s2:str, contexts=[], v0=""):
         
@@ -25,10 +30,11 @@ class DFST:
         self.sigma = set(sym for transitions in self.delta.values() for sym in transitions.keys())            
         self.gamma = set(sym[1] for transitions in self.delta.values() for sym in transitions.values())           
     
-    def display_params(self):
-        """ Prints out sigma, gamma, q0, v0, Q, F, delta"""
+    @property
+    def params(self):
+        """ Prints sigma, gamma, q0, v0, Q, F, delta"""
         
-        print(f"\nRewrite rule: {self.s1} -> {self.s2} / {'_' if not self.contexts else self.contexts}") #! needs to account for multiple mappings
+        print(f"\nRewrite rule: {self.s1} -> {self.s2} / {'_' if not self.contexts else self.contexts}")
         
         print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {self.Q}\nq0: {self.q0}\nv0: {self.v0}\nF: Not implemented yet")
         
@@ -39,86 +45,10 @@ class DFST:
                 print(f"{state} --({s} : {t[1]})--> {t[0]}")
         print("~"*20,"\n")
         
-        
-    def generate_transitions(self, s1, s2, contexts):
-        
-        
-        IN, OUT = s1.split(), s2.split()
-        if not IN or not OUT:
-            raise NotImplementedError("Insertion and deletion rules not implemented yet. Stay tuned!")
-        
-        delta = []
-        
-        for con in contexts: 
-            for _in, _out in zip(IN, OUT):
-                CON = con.split("_") # splits the current context into a double. right side empty == left context rule, left side empty == right context rule
-   
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ this block generates all left context transitions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if CON[0]: 
-                    next_state = "" # rebuild state names symbol by symbol               
-                    left_context = CON[0]
-                    previous_state = self.q0 
-                    
-                    for sym in left_context:                           
-                        next_state += sym 
-                        
-                        delta.append( (previous_state, sym, cfx(next_state), sym) )
-                        delta.append( (previous_state, "?", self.q0, "?") ) # unspecified transitions. ? is a placeholder cf Chandlee 2014
-                        
-                        if len(next_state) == 1: # beginning of context can repeat arbitrary number of times
-                            delta.append( (cfx(next_state), sym, cfx(next_state), sym) )
-                        
-                        previous_state = cfx(next_state) # update previous_state 
-                        
-                        if next_state == left_context: # reached the last state of context
-                            delta.append( (previous_state, _in, self.q0, _out) )
-                            delta.append( (previous_state, "?", self.q0, "?") )
-                            
-                        
-                            
-                        #     if cfx(_in) in delta and cfx(_in) != previous_state: # transition back to state corresponding to _in symbol
-                        #         delta[previous_state][_in] = [cfx(_in), _out] 
-                        #     else: 
-                        #         delta[previous_state][_in] = [self.q0, _out]
-                            
-                        #     delta[previous_state]["?"] = [self.q0, "?"]
-                    
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ this block generates all right context transitions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if CON[1]:
-                    next_state = ""       
-                    right_context = _in + CON[1] # input symbol is always the first contextual transition. Also don't want to include the last symbol in context when generating states
-                    previous_state = self.q0
-                    
-                    for sym in right_context[:-1]:
-                        next_state += sym
-
-                        delta.append( (previous_state, sym, cfx(next_state), "λ") ) # all transitions moving to the right will output the empty string
-                        if previous_state == self.q0:
-                            delta.append( (previous_state, "?", self.q0, "?") ) # initial state gets a ?:? transition
-                        else:
-                            delta.append( (previous_state, "?", self.q0, dfx(previous_state) + "?") ) # if unknown symbol, need to output the state name along with '?'
-                        
-                        if len(next_state) == 1: # beginning of context can repeat arbitrary number of times
-                            delta.append( (cfx(next_state), sym, cfx(next_state), sym) )
-                            
-                        previous_state = cfx(next_state) # update previous_state
-                        
-                        if next_state == right_context[:-1]: # reached the last state of context
-                            delta.append( (previous_state, right_context[-1] , self.q0, _out+CON[1]) )
-                            delta.append( (previous_state, "?", self.q0, next_state + "?") )
-                   
-        # context free rules              
-        if not contexts:
-            for _in, _out in zip (IN, OUT): 
-                delta.append((self.q0, _in, self.q0, _out))
-                delta.append((self.q0, "?", self.q0, "?"))
-                 
-        return delta     
-    
     def generate_delta(self, s1, s2, contexts):
         
         delta = defaultdict(lambda: defaultdict(dict))
-        transitions = self.generate_transitions(s1, s2, contexts)
+        transitions = get_transitions(s1, s2, contexts)
         
         for trans in transitions:
             prev_state, in_sym, next_state, out_sym = trans
@@ -128,7 +58,7 @@ class DFST:
     
     
     def add_transition(self, trans:tuple):
-        #! untested
+        
         assert len(trans) == 4, "transition must be input as (prev_state, in_symbol, next_state, out_symbol)"
         prev_state, in_symbol, next_state, out_symbol = trans
         self.delta[prev_state][in_symbol] = [next_state, out_symbol]
@@ -142,19 +72,19 @@ class DFST:
         if not graph_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
         
-        graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR")
-        graph.add_node(pydot.Node("initial", shape="point"))
+        graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR", size="6!")
+        graph.add_node(pydot.Node("initial", shape="point", color="white"))
         #! need to add final functions to output somehow 
         
         i = 0
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
-                graph.add_node(pydot.Node(dfx(state), shape="circle",))
+                graph.add_node(pydot.Node(dfx(state), shape="doublecircle",))
                 
                 if state == self.q0 and i == 0: # the i here enforces that this edge only gets created once
                     graph.add_edge(pydot.Edge("initial", dfx(state)))
                 
-                graph.add_node(pydot.Node(dfx(out_trans[0]), shape="circle"))
+                graph.add_node(pydot.Node(dfx(out_trans[0]), shape="doublecircle"))
                 graph.add_edge(pydot.Edge(dfx(state),dfx(out_trans[0]),label=f"{in_sym}\:{out_trans[1]}"))
                 i += 1
                 
@@ -205,6 +135,6 @@ class DFST:
  
 
 
-test2 = DFST("a", "b", ["_c",])
-test2.display_params()
-test2.to_graph()
+test2 = DFST("a", "b", ["_x"])
+test2.params
+test2.to_graph(show=True)
