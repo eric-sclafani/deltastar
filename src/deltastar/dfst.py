@@ -2,21 +2,13 @@
 
 # Eric Sclafani
 from collections import defaultdict
-from dataclasses import dataclass
 import PySimpleGUI as sg
 import pydot
-from transitions import get_transitions, dfx, cfx
+from transitions import get_transitions, dfx
 
     
-# @dataclass
 class DFST:
-    
-    # s1:str
-    # s2:str
-    # contexts:list
-    # q0:str = "<λ>" 
-    # v0:str = ""
-    
+
     def __init__(self, s1:str, s2:str, contexts=[], v0=""):
         
         self.q0 = "<λ>"                          
@@ -24,14 +16,12 @@ class DFST:
         self.s1 = s1
         self.s2 = s2  
         self.contexts = contexts                      
-        self.delta = self.generate_delta(self.s1, self.s2, contexts)
+        self.delta = self.generate_delta(self.s1, self.s2, self.contexts)
         self.Q = list(self.delta.keys())        
-        
         self.sigma = set(sym for transitions in self.delta.values() for sym in transitions.keys())            
         self.gamma = set(sym[1] for transitions in self.delta.values() for sym in transitions.values())           
     
-    @property
-    def params(self):
+    def displayparams(self):
         """ Prints sigma, gamma, q0, v0, Q, F, delta"""
         
         print(f"\nRewrite rule: {self.s1} -> {self.s2} / {'_' if not self.contexts else self.contexts}")
@@ -56,10 +46,24 @@ class DFST:
             
         return delta
     
-    
     def add_transition(self, trans:tuple):
+        """manually adds a transition to delta
+
+        Args:
+            trans (tuple): transition to be added to delta
+
+        Raises:
+            TypeError: crashes if user uses anything other than a tuple
+            ValueError: crashes if tuple format is invalid
+        Returns:
+            None - updates delta by reference
+        """
         
-        assert len(trans) == 4, "transition must be input as (prev_state, in_symbol, next_state, out_symbol)"
+        if not isinstance(trans, tuple):
+            raise TypeError("transition must be of type 'tuple'")
+        elif len(trans) != 4:
+            raise ValueError("transition must be input as (prev_state, in_symbol, next_state, out_symbol)")
+        
         prev_state, in_symbol, next_state, out_symbol = trans
         self.delta[prev_state][in_symbol] = [next_state, out_symbol]
            
@@ -68,6 +72,7 @@ class DFST:
         pass
     
     def to_graph(self, graph_name="my_machine.png", show=False):
+         
         
         if not graph_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
@@ -135,6 +140,6 @@ class DFST:
  
 
 
-test2 = DFST("a", "b", ["_x"])
-test2.params
+test2 = DFST("a", "b", ["q_e", "b_"])
+test2.displayparams()
 test2.to_graph(show=True)
