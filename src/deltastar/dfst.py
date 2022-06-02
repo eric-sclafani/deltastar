@@ -4,7 +4,7 @@
 from collections import defaultdict
 import PySimpleGUI as sg
 import pydot
-from transitions import get_transitions, dfx
+from transitions import get_transitions, dfx, cfx
 
     
 class DFST:
@@ -16,11 +16,37 @@ class DFST:
         self.s1 = s1
         self.s2 = s2  
         self.contexts = contexts                      
-        self.delta = self.generate_delta(self.s1, self.s2, self.contexts)
-        self.Q = list(self.delta.keys())        
-        self.sigma = set(sym for transitions in self.delta.values() for sym in transitions.keys())            
-        self.gamma = set(sym[1] for transitions in self.delta.values() for sym in transitions.values())           
+        self.delta = self._generatedelta(self.s1, self.s2, self.contexts)
+        self.finals = self._finals()
+        self.Q = set(self.delta.keys())        
     
+    def _generatedelta(self, s1, s2, contexts):
+        
+        delta = defaultdict(lambda: defaultdict(dict))
+        transitions = get_transitions(s1, s2, contexts)
+        
+        for trans in transitions:
+            prev_state, in_sym, next_state, out_sym = trans
+            delta[prev_state][in_sym] = [next_state, out_sym]
+            
+        return delta
+    
+    def _finals(self):
+        
+        states = []
+        for state, transitions in self.delta.items():
+            for in_sym, out_trans in transitions.items():
+                if out_trans[1] == "λ": # if output symbol== lambda, then its a right context transition. Thus, the next_state needs its own output
+                    states.append(dfx(out_trans[0]))
+        return states
+                
+    @property
+    def sigma(self):
+        return set(sym for transitions in self.delta.values() for sym in transitions.keys())  
+    @property
+    def gamma(self):
+        return set(sym[1] for transitions in self.delta.values() for sym in transitions.values()) 
+                           
     def displayparams(self):
         """ Prints sigma, gamma, q0, v0, Q, F, delta"""
         
@@ -35,18 +61,7 @@ class DFST:
                 print(f"{state} --({s} : {t[1]})--> {t[0]}")
         print("~"*20,"\n")
         
-    def generate_delta(self, s1, s2, contexts):
-        
-        delta = defaultdict(lambda: defaultdict(dict))
-        transitions = get_transitions(s1, s2, contexts)
-        
-        for trans in transitions:
-            prev_state, in_sym, next_state, out_sym = trans
-            delta[prev_state][in_sym] = [next_state, out_sym]
-            
-        return delta
-    
-    def add_transition(self, trans:tuple):
+    def addtransition(self, trans:tuple):
         """manually adds a transition to delta
 
         Args:
@@ -57,8 +72,10 @@ class DFST:
             ValueError: crashes if tuple format is invalid
         Returns:
             None - updates delta by reference
+            
+        Example:
+
         """
-        
         if not isinstance(trans, tuple):
             raise TypeError("transition must be of type 'tuple'")
         elif len(trans) != 4:
@@ -68,7 +85,7 @@ class DFST:
         self.delta[prev_state][in_symbol] = [next_state, out_symbol]
            
     
-    def remove_transition(self, trans:tuple):
+    def removetransition(self, trans:tuple):
         pass
     
     def to_graph(self, graph_name="my_machine.png", show=False):
@@ -129,17 +146,15 @@ class DFST:
                 output += sym.replace("?", char)
                 state = self.delta[state]["?"][0]
                 
-        # final function
-        #! no longer working
-        for pair in self.state_names:
-            if pair[1] == "RCON":
-                if pair[0] == dfx(state): # if we land in a right context state, output that states name
-                    output += pair[0]
+        # final string concatenation 
+        if dfx(state) in self._finals(): # if we land in a right context state, output that states name
+            output += dfx(state)
                 
         return output
  
 
 
-test2 = DFST("a", "b", ["q_e", "b_"])
+test2 = DFST("a", "b", ["c_c"])
 test2.displayparams()
-test2.to_graph(show=True)
+# test2.to_graph(show=True)
+print(test2.rewrite("aa")) #! crashing

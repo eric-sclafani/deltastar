@@ -79,11 +79,9 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
                 previous_state = cfx(next_state) 
                 
             # reached the end of the context
-            t.append( (previous_state, right_context[-1] , q0, _out+context) ) # transduction: output out symbol + state name
-                      
+            t.append( (previous_state, right_context[-1] , q0, _out+context) ) # transduction: output out symbol + state name             
     return t
 
-    
 def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
     
     t = []
@@ -97,10 +95,13 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
        
         t.extend(dual_trans)  
     return t
+
+   
        
+       
+def prefix_transitions(trans):
+    pass
         
-
-
 def get_transitions(in_strings, out_strings, contexts):
     
     IN, OUT = in_strings.split(), out_strings.split()
@@ -108,7 +109,6 @@ def get_transitions(in_strings, out_strings, contexts):
         raise NotImplementedError("Insertion and deletion rules not implemented yet. Stay tuned!")
     
     trans = [] # list of all transitions for current DFST
-    
     Lcons, Rcons, Dualcons= parse_contexts(contexts)
     
     if not contexts:
@@ -120,6 +120,9 @@ def get_transitions(in_strings, out_strings, contexts):
     if Dualcons:
         trans += generate_dual_context_transitions(IN, OUT, Dualcons)
         
+    statenames = set(map(lambda x: dfx(x[0]), trans))
+    #! prefix trans    
+    
     return trans
 
 
