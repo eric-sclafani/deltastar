@@ -112,7 +112,7 @@ class DFST:
         
         graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR", size="6!")
         graph.add_node(pydot.Node("initial", shape="point", color="white"))
-        #! need to add final functions to output somehow and all_edges conditional
+        #! all_edges conditional
         
         i = 0
         for state, transitions in self.delta.items():
@@ -183,6 +183,6 @@ class DFST:
  
 
 
-t = DFST("a", "b", ["x_y"])
+t = DFST("a", "b", ["abc_xyz"])
 t.displayparams
 t.to_graph()
