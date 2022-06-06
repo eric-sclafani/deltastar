@@ -28,7 +28,10 @@ pip3 install deltastar
 ```
 
 ## Disclaimer
+first project
 
+## Note
+A large portion of the README will eventually be migrated to a separate documentation file, complete with more detailed explanations and examples.
 
 ## Usage and current implementations
 

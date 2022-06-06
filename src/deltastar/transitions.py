@@ -1,12 +1,11 @@
 
 # -*- coding: utf8 -*-
 
-
 cfx = lambda string: f"<{string}>"                # circumfix func
 dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
     
 def parse_contexts(contexts):
-    """Sorts rewrite rule contexts based on the type of context (left, right, or both)
+    """Sorts rewrite rule contexts based on the type of context (left, right, or both) into separate lists
 
     Returns:
         list: list of contexts sorted by context type
@@ -33,6 +32,7 @@ def generate_context_free_transitions(IN, OUT,q0="<λ>"):
     
 def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
     t = []
+    seen_states = []
     
     for context in contexts:
         context = context.replace("_","")
@@ -42,16 +42,20 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
             
             for sym in context:                           
                 next_state += sym 
-                
                 t.append( (previous_state, sym, cfx(next_state), sym) )
+                seen_states.append(previous_state)
                 
                 if len(next_state) == 1: # beginning of context can repeat arbitrary number of times
                     t.append( (cfx(next_state), sym, cfx(next_state), sym) )
                 
                 previous_state = cfx(next_state) # update previous_state 
                 
-            # reached the end of the context
-            t.append( (previous_state, _in, q0, _out) )
+                
+                
+                
+            t.append( (previous_state, _in, q0, _out) ) 
+            
+                
     return t
 
 def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dual=False):
@@ -62,7 +66,7 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
         for _in, _out in zip(IN, OUT):
            
             if dual: # function switches behaviour when generating transitions for dual context rules
-                next_state = Lcon[0] #! weird index error 
+                next_state = Lcon[0]
                 previous_state = cfx(next_state)
             else:
                 next_state = ""
@@ -95,12 +99,6 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
        
         t.extend(dual_trans)  
     return t
-
-   
-       
-       
-def prefix_transitions(trans):
-    pass
         
 def get_transitions(in_strings, out_strings, contexts):
     
@@ -120,11 +118,4 @@ def get_transitions(in_strings, out_strings, contexts):
     if Dualcons:
         trans += generate_dual_context_transitions(IN, OUT, Dualcons)
         
-    statenames = set(map(lambda x: dfx(x[0]), trans))
-    #! prefix trans    
-    
     return trans
-
-
-
-    
