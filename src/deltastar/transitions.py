@@ -32,7 +32,6 @@ def generate_context_free_transitions(IN, OUT,q0="<λ>"):
     
 def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
     t = []
-    seen_states = []
     
     for context in contexts:
         context = context.replace("_","")
@@ -43,18 +42,15 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
             for sym in context:                           
                 next_state += sym 
                 t.append( (previous_state, sym, cfx(next_state), sym) )
-                seen_states.append(previous_state)
+                t.append( (previous_state, "?", q0, "?") ) # unspecified transitions. ? is a placeholder cf Chandlee 2014
                 
-                if len(next_state) == 1: # beginning of context can repeat arbitrary number of times
+                if len(set(dfx(previous_state))) == 1: # beginning of context can repeat arbitrary number of times
                     t.append( (cfx(next_state), sym, cfx(next_state), sym) )
                 
                 previous_state = cfx(next_state) # update previous_state 
                 
-                
-                
-                
             t.append( (previous_state, _in, q0, _out) ) 
-            
+            t.append( (previous_state, "?", q0, "?") )
                 
     return t
 
@@ -69,21 +65,38 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
                 next_state = Lcon[0]
                 previous_state = cfx(next_state)
             else:
-                next_state = ""
                 previous_state = q0
-                
+                next_state = ""  
+                 
             right_context = _in + context # input symbol is always the first contextual transition. Also don't want to include the last symbol in context when generating states
             for sym in right_context[:-1]:
                 next_state += sym
+                
                 t.append( (previous_state, sym, cfx(next_state), "λ") ) # all transitions moving to the right will output the empty string
                 
+                if previous_state == q0: # initial state gets a ?:? transition
+                    t.append( (previous_state, "?", q0, "?") ) 
+                else:
+                    try:
+                        output = dfx(previous_state).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
+                    except IndexError:
+                        output = dfx(previous_state)   
+                    
+                    t.append( (previous_state, "?", q0, output + "?") ) # if unknown symbol, need to output the state name along with '?'
+
                 if len(next_state) == 1 and not dual: 
                     t.append( (cfx(next_state), sym, cfx(next_state), sym) )
                     
                 previous_state = cfx(next_state) 
                 
             # reached the end of the context
-            t.append( (previous_state, right_context[-1] , q0, _out+context) ) # transduction: output out symbol + state name             
+            t.append( (previous_state, right_context[-1] , q0, _out+context) ) # transduction: output out symbol + state name       
+            try:
+                output = dfx(previous_state).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
+            except IndexError:
+                        output = dfx(previous_state) 
+            t.append( (previous_state, "?", q0, output + "?"))    
+              
     return t
 
 def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):

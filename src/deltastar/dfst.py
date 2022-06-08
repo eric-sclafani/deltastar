@@ -5,11 +5,13 @@ from collections import defaultdict
 import PySimpleGUI as sg
 import pydot
 from transitions import get_transitions, dfx, cfx
-
-    
+  
 class DFST:
 
     def __init__(self, s1:str, s2:str, contexts=[], v0=""):
+        
+        if not isinstance(s1, str) or not isinstance(s2,str):
+            raise ValueError("s1 and s2 must be of type 'str'")
         
         self.q0 = "<λ>"                          
         self.v0 = v0
@@ -31,8 +33,10 @@ class DFST:
             states.add(dfx(prev_state))
             delta[prev_state][in_sym] = [next_state, out_sym]
             
-        # prefix transitions: need to do them here bc I need access to the delta dict
+        #! HIGHLY WIP: some prefix transitions are still incorrect / not generated. Prefix transitions will be returned in future update
+        # prefix transitions: need to do them here instead of transitions.py bc I need access to the delta dict
         for state in states:
+            
             prefix = ""
             for sym in state:
                 prefix += sym # rebuild preix state name symbol by symbol
@@ -42,15 +46,11 @@ class DFST:
                     if not delta[cfx(state)].get(prefix[-1]): # check to see if current state does not already have an outgoing transition with last symbol of prefix
                         if state[-1] + sym == prefix: # very important check: if the last symbol of the state + current symbol == the prefix. Without this check, false transitions can be created
                             delta[cfx(state)][prefix[-1]] = [cfx(prefix), prefix[-1]]
-                            
-                    # #! add transduction transition prefix handling here?   
-                    # elif delta[cfx(state)].get(prefix[-1]) != delta[cfx(state)][prefix[-1]][1]: # detects transduction (input sym != output sym)
                         
                 # character level transitions (need these too since the prefix level doesn't capture all possible transitions)
                 if not delta[cfx(state)].get(sym) and state != "λ": # check if outgoing transition already exists with input char from state and disallow q0 self loop                       
-                    if cfx(sym) in delta:
+                    if sym != state and cfx(sym) in delta: 
                         delta[cfx(state)][sym] = [cfx(sym), sym]
-
         return delta
     
     def _finals(self):
@@ -58,7 +58,9 @@ class DFST:
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
                 if out_trans[1] == "λ": # if outputsym == lambda, then its a right context transition. Thus, the next_state needs its own output
-                    states.append(dfx(out_trans[0]))
+                    state_output = dfx(out_trans[0])
+                    states.append(state_output)
+        
         return states
                 
     @property
@@ -70,10 +72,10 @@ class DFST:
     
     @property                  
     def displayparams(self):
-        """ Prints sigma, gamma, q0, v0, Q, F, delta""" 
+        """ Prints rewrtie rule, sigma, gamma, Q, q0, v0, F, delta""" 
         
         print(f"\nRewrite rule: {self.s1} -> {self.s2} / {'_' if not self.contexts else self.contexts}")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {self.v0}\nF:{self.finals}")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF:{self.finals}")
         
         print(f"{'~'*7}Delta:{'~'*7}")
         
@@ -82,44 +84,49 @@ class DFST:
                 print(f"{state} --({s} : {t[1]})--> {t[0]}")
         print("~"*20,"\n")
         
-    def addtransition(self, trans:tuple):
+    def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
         """manually adds a transition to delta
 
         Args:
-            trans (tuple): transition to be added to delta
-        Raises:
-            TypeError: crashes if user uses anything other than a tuple
-            ValueError: crashes if tuple format is invalid
-        Returns:
-            None - updates delta by reference
-        """
-        if not isinstance(trans, tuple):
-            raise TypeError("transition must be of type 'tuple'")
-        elif len(trans) != 4:
-            raise ValueError("transition must be input as (prev_state, in_symbol, next_state, out_symbol)")
-        
-        prev_state, in_symbol, next_state, out_symbol = trans
-        self.delta[prev_state][in_symbol] = [next_state, out_symbol]
+            prev_state (str): state where transition begins
+            in_sym (str): input string
+            next_state (str): state where transition ends
+            out_sym (str): output string
+        """   
+        self.delta[prev_state][in_sym] = [next_state, out_sym]
            
-    
-    def removetransition(self, trans:tuple):
-        pass
-    
-    def to_graph(self, file_name="my_machine.png",window=False, all_edges=True):
+    def removetransition(self, prev_state:str, in_sym:str,):
+        """manually removes a transition. Note: removing certain transitions can break the FST.
+
+        Args:
+            prev_state (str): state to delete a transition from
+            in_sym (str): symbol transition to be deleted
+        """
+        try:
+            del self.delta[prev_state][in_sym]
+        except KeyError:
+            raise KeyError(f"state '{prev_state}' with input symbol '{in_sym}' not found")
+        
+    def to_graph(self, file_name="my_machine.png",window=False, extra_edges=True):
          
         if not file_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
         
         graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR", size="6!")
         graph.add_node(pydot.Node("initial", shape="point", color="white"))
-        #! all_edges conditional
         
         i = 0
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
-               
+                
+                if not extra_edges and in_sym == "?":
+                    continue
+                
                 prev_state = dfx(state)
                 next_state = dfx(out_trans[0])
+                
+                if cfx(prev_state) == self.q0 and i == 0: # i enforces that this edge only gets created once
+                    graph.add_edge(pydot.Edge("initial", prev_state))
                 
                 # if we have right context transitions, states need to output themselves
                 if prev_state in self.finals: 
@@ -130,13 +137,6 @@ class DFST:
                 graph.add_node(pydot.Node(prev_state, shape="doublecircle"))
                 graph.add_node(pydot.Node(next_state, shape="doublecircle"))
                 graph.add_edge(pydot.Edge(prev_state, next_state, label=f"{in_sym}\:{out_trans[1]}"))
-          
-                    
-                if cfx(state) == self.q0 and i == 0: # the i here enforces that this edge only gets created once
-                    graph.add_edge(pydot.Edge("initial", prev_state))
-                    
-               
-                
                 i += 1
                 
         graph.write_png(file_name)
@@ -176,13 +176,17 @@ class DFST:
                 state = self.delta[state]["?"][0]
                 
         # final string concatenation 
-        if dfx(state) in self.finals: # if we land in a right context state, output that states name
+        if dfx(state) in self.finals: 
             output += dfx(state)
                 
         return self.v0 + output
  
 
 
-t = DFST("a", "b", ["abc_xyz"])
+t = DFST("a", "b", ["xy_zw"])
 t.displayparams
 t.to_graph()
+
+# t = DFST("a", "b", ["x_yz"])
+# t.displayparams
+# t.to_graph()
