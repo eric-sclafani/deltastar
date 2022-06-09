@@ -1,4 +1,3 @@
-# -*- coding: utf8 -*-
 
 # Eric Sclafani
 from collections import defaultdict
@@ -13,6 +12,10 @@ class DFST:
         
         if not isinstance(s1, str) or not isinstance(s2,str):
             raise ValueError("s1 and s2 must be of type 'str'")
+        if not isinstance(contexts,list):
+            raise ValueError("contexts must be of type 'list'")
+        if "λ" in s1 or "λ" in s2 or "λ" in "".join(contexts):
+            raise ValueError("'λ' is a reserved symbol and cannot be used in rewrite rules")
         
         self.q0 = "<λ>"                          
         self.v0 = v0
@@ -56,7 +59,7 @@ class DFST:
     
     def _finals(self):
         states = []
-        seen_left_context = ""
+        
         right = False
         
         # checks to see if the machine is strictly right context:
@@ -67,6 +70,7 @@ class DFST:
             right = True
         
         for state, transitions in self.delta.items():
+            seen_left_context = ""
             for in_sym, out_trans in transitions.items():
                 
                 if right:
@@ -76,11 +80,11 @@ class DFST:
                          
                 else: # is a dual context
                     # this condition block keeps track of left contexts and subtracts them from right context state names when processing a dual context
-                    if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != "?" and in_sym == out_trans[1]:
+                    if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != "ψ" and in_sym == out_trans[1]:
                         seen_left_context += in_sym
                         
                     elif out_trans[1] == "λ": 
-                        if dfx(out_trans[0]).startswith(seen_left_context) and seen_left_context != dfx(out_trans[0]):
+                        if dfx(out_trans[0]).startswith(seen_left_context) and seen_left_context != dfx(out_trans[0]): 
                             
                             state_output = dfx(out_trans[0]).replace(seen_left_context,"",1)
                         else:
@@ -144,7 +148,7 @@ class DFST:
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
                 
-                if not extra_edges and in_sym == "?":
+                if not extra_edges and in_sym == "ψ":
                     continue
                 
                 prev_state = dfx(state)
@@ -198,9 +202,9 @@ class DFST:
                 state = self.delta[state][char][0]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
-                sym = self.delta[state]["?"][1]
-                output += sym.replace("?", char)
-                state = self.delta[state]["?"][0]
+                sym = self.delta[state]["ψ"][1]
+                output += sym.replace("ψ", char)
+                state = self.delta[state]["ψ"][0]
         
         
         # final string concatenation 
@@ -211,8 +215,6 @@ class DFST:
         return self.v0 + output
  
 
-
-t = DFST("a", "b", ["_xy"])
+t = DFST("?", "m", ["p_"])
 t.displayparams
-t.to_graph()
-print(t.rewrite(""))
+t.to_graph(window=True)

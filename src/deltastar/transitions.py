@@ -40,7 +40,7 @@ def generate_context_free_transitions(IN, OUT,q0="<λ>"):
     t = []
     for _in, _out in zip (IN, OUT): # all CF transitions are self loops
         t.append((q0, _in, q0, _out))
-        t.append((q0, "?", q0, "?")) 
+        t.append((q0, "ψ", q0, "ψ")) 
     return t
     
 def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
@@ -65,7 +65,7 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
             for sym in context:                           
                 next_state += sym 
                 t.append( (previous_state, sym, cfx(next_state), sym) )
-                t.append( (previous_state, "?", q0, "?") ) # unspecified transitions. ? is a placeholder cf Chandlee 2014
+                t.append( (previous_state, "ψ", q0, "ψ") ) # unspecified transitions. ψ is a placeholder symbol for symbols not a part of the context
                 
                 if len(set(dfx(previous_state))) == 1 and len(set(dfx(next_state))) == 1: # beginning of context can repeat arbitrary number of times
                     t.append( (cfx(next_state), sym, cfx(next_state), sym) )
@@ -73,7 +73,7 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
                 previous_state = cfx(next_state) # update previous_state 
                 
             t.append( (previous_state, _in, q0, _out) ) 
-            t.append( (previous_state, "?", q0, "?") )
+            t.append( (previous_state, "ψ", q0, "ψ") )
                 
     return t
 
@@ -108,15 +108,15 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
                 
                 t.append( (previous_state, sym, cfx(next_state), "λ") ) # all transitions moving to the right will output the empty string
                 
-                if previous_state == q0: # initial state gets a ?:? transition
-                    t.append( (previous_state, "?", q0, "?") ) 
+                if previous_state == q0: # initial state gets a ψ:ψ transition
+                    t.append( (previous_state, "ψ", q0, "ψ") ) 
                 else:
                     try:
                         output = dfx(previous_state).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
                     except IndexError:
                         output = dfx(previous_state)   
                     
-                    t.append( (previous_state, "?", q0, output + "?") ) # if unknown symbol, need to output the state name along with '?'
+                    t.append( (previous_state, "ψ", q0, output + "ψ") ) # if unknown symbol, need to output the state name along with '?'
 
                 if len(next_state) == 1 and not dual: 
                     t.append( (cfx(next_state), sym, cfx(next_state), sym) )
@@ -129,7 +129,7 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
                 output = dfx(previous_state).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
             except IndexError:
                         output = dfx(previous_state) 
-            t.append( (previous_state, "?", q0, output + "?"))    
+            t.append( (previous_state, "ψ", q0, output + "ψ"))    
               
     return t
 
@@ -169,8 +169,14 @@ def get_transitions(in_syms, out_syms, contexts):
     """
     
     IN, OUT = in_syms.split(), out_syms.split()
-    if not IN or not OUT:
-        raise NotImplementedError("Insertion and deletion rules not implemented yet. Stay tuned!")
+ 
+    # if not OUT: # deletion rule
+        
+    #     for i in range(len(IN)):
+            
+    
+    
+    
     
     trans = [] # list of all transitions for current DFST
     Lcons, Rcons, Dualcons= parse_contexts(contexts)
