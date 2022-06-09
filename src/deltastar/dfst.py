@@ -72,19 +72,20 @@ class DFST:
                 if right:
                     if out_trans[1] == "λ":
                         state_output = dfx(out_trans[0])
-                        states.append(state_output)   
+                        states.append((out_trans[0], state_output))   
                          
                 else: # is a dual context
                     # this condition block keeps track of left contexts and subtracts them from right context state names when processing a dual context
-                    if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != "?":
+                    if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != "?" and in_sym == out_trans[1]:
                         seen_left_context += in_sym
-                    
+                        
                     elif out_trans[1] == "λ": 
-                        try:
-                            state_output = dfx(out_trans[0]).replace(seen_left_context,"")
-                        except IndexError:
+                        if dfx(out_trans[0]).startswith(seen_left_context) and seen_left_context != dfx(out_trans[0]):
+                            
+                            state_output = dfx(out_trans[0]).replace(seen_left_context,"",1)
+                        else:
                             state_output = dfx(out_trans[0]) 
-                        states.append(state_output)
+                        states.append((out_trans[0], state_output))
         return states
                 
     @property
@@ -154,11 +155,11 @@ class DFST:
                 
                 # if we have right context transitions, states need to output themselves
                 for final in self.finals:
-                    if prev_state.endswith(final): 
-                        prev_state = f"{prev_state}\,{final}"
+                    if cfx(prev_state) == final[0]: 
+                        prev_state = f"{prev_state}\,{final[1]}"
                         
-                    if next_state.endswith(final):
-                        next_state = f"{next_state}\,{final}"
+                    if cfx(next_state) == final[0]:
+                        next_state = f"{next_state}\,{final[1]}"
                           
                 graph.add_node(pydot.Node(prev_state, shape="doublecircle"))
                 graph.add_node(pydot.Node(next_state, shape="doublecircle"))
@@ -200,15 +201,18 @@ class DFST:
                 sym = self.delta[state]["?"][1]
                 output += sym.replace("?", char)
                 state = self.delta[state]["?"][0]
-                
+        
+        
         # final string concatenation 
-        if dfx(state) in self.finals: 
-            output += dfx(state)
+        for final in list(filter(lambda x: x[0] == state, self.finals)):
+            if state == final[0]:
+                output += final[1]
                 
         return self.v0 + output
  
 
 
-t = DFST("a", "b", ["x_"])
+t = DFST("a", "b", ["_xy"])
 t.displayparams
 t.to_graph()
+print(t.rewrite(""))
