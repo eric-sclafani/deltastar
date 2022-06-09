@@ -2,6 +2,7 @@
 
 # Eric Sclafani
 from collections import defaultdict
+from more_itertools import collapse
 import PySimpleGUI as sg
 import pydot
 from transitions import get_transitions, dfx, cfx
@@ -55,12 +56,35 @@ class DFST:
     
     def _finals(self):
         states = []
+        seen_left_context = ""
+        right = False
+        
+        # checks to see if the machine is strictly right context:
+        # after collapsing, if second entry == lambda, then we know for sure it's a right context and not a dual one
+        # need to do this because dual contexts have different rules for state outputs than strictly right
+        check_right = list(collapse([val for state, transition in self.delta.items() for val in transition.values()]))
+        if check_right[1] == "λ":
+            right = True
+        
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
-                if out_trans[1] == "λ": # if outputsym == lambda, then its a right context transition. Thus, the next_state needs its own output
-                    state_output = dfx(out_trans[0])
-                    states.append(state_output)
-        
+                
+                if right:
+                    if out_trans[1] == "λ":
+                        state_output = dfx(out_trans[0])
+                        states.append(state_output)   
+                         
+                else: # is a dual context
+                    # this condition block keeps track of left contexts and subtracts them from right context state names when processing a dual context
+                    if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != "?":
+                        seen_left_context += in_sym
+                    
+                    elif out_trans[1] == "λ": 
+                        try:
+                            state_output = dfx(out_trans[0]).replace(seen_left_context,"")
+                        except IndexError:
+                            state_output = dfx(out_trans[0]) 
+                        states.append(state_output)
         return states
                 
     @property
@@ -96,7 +120,7 @@ class DFST:
         self.delta[prev_state][in_sym] = [next_state, out_sym]
            
     def removetransition(self, prev_state:str, in_sym:str,):
-        """manually removes a transition. Note: removing certain transitions can break the FST.
+        """manually removes a transition from delta. Note: removing certain transitions can break the FST.
 
         Args:
             prev_state (str): state to delete a transition from
@@ -129,11 +153,13 @@ class DFST:
                     graph.add_edge(pydot.Edge("initial", prev_state))
                 
                 # if we have right context transitions, states need to output themselves
-                if prev_state in self.finals: 
-                    prev_state = f"{prev_state}\,{prev_state}"
-                if next_state in self.finals:
-                    next_state = f"{next_state}\,{next_state}"
-                
+                for final in self.finals:
+                    if prev_state.endswith(final): 
+                        prev_state = f"{prev_state}\,{final}"
+                        
+                    if next_state.endswith(final):
+                        next_state = f"{next_state}\,{final}"
+                          
                 graph.add_node(pydot.Node(prev_state, shape="doublecircle"))
                 graph.add_node(pydot.Node(next_state, shape="doublecircle"))
                 graph.add_edge(pydot.Edge(prev_state, next_state, label=f"{in_sym}\:{out_trans[1]}"))
@@ -170,7 +196,7 @@ class DFST:
                 output += sym if sym != "λ" else ""
                 state = self.delta[state][char][0]
                 
-            except: # if not found, use the placeholder transition and replace placeholder with char
+            except KeyError: # if not found, use the placeholder transition and replace placeholder with char
                 sym = self.delta[state]["?"][1]
                 output += sym.replace("?", char)
                 state = self.delta[state]["?"][0]
@@ -183,10 +209,6 @@ class DFST:
  
 
 
-t = DFST("a", "b", ["xy_zw"])
+t = DFST("a", "b", ["x_"])
 t.displayparams
 t.to_graph()
-
-# t = DFST("a", "b", ["x_yz"])
-# t.displayparams
-# t.to_graph()

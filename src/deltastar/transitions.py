@@ -7,6 +7,9 @@ dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
 def parse_contexts(contexts):
     """Sorts rewrite rule contexts based on the type of context (left, right, or both) into separate lists
 
+    Args:
+        contexts(list): list of contexts
+    
     Returns:
         list: list of contexts sorted by context type
     """
@@ -24,6 +27,16 @@ def parse_contexts(contexts):
     return Lcons, Rcons, Dualcons
 
 def generate_context_free_transitions(IN, OUT,q0="<λ>"):
+    """Generates transitions for context free rewrite rules
+
+    Args:
+        IN (list): list of input symbols
+        OUT (list): iist of output symbols
+        q0 (str, optional): initial state. Defaults to "<λ>".
+
+    Returns:
+        list: List of transitions
+    """
     t = []
     for _in, _out in zip (IN, OUT): # all CF transitions are self loops
         t.append((q0, _in, q0, _out))
@@ -31,6 +44,16 @@ def generate_context_free_transitions(IN, OUT,q0="<λ>"):
     return t
     
 def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
+    """Generates transitions for left context sensitive rewrite rules
+
+        Args:
+            IN (list): list of input symbols
+            OUT (list): list of output symbols
+            q0 (str, optional): initial state. Defaults to "<λ>".
+
+        Returns:
+            list: List of transitions
+        """
     t = []
     
     for context in contexts:
@@ -44,7 +67,7 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
                 t.append( (previous_state, sym, cfx(next_state), sym) )
                 t.append( (previous_state, "?", q0, "?") ) # unspecified transitions. ? is a placeholder cf Chandlee 2014
                 
-                if len(set(dfx(previous_state))) == 1: # beginning of context can repeat arbitrary number of times
+                if len(set(dfx(previous_state))) == 1 and len(set(dfx(next_state))) == 1: # beginning of context can repeat arbitrary number of times
                     t.append( (cfx(next_state), sym, cfx(next_state), sym) )
                 
                 previous_state = cfx(next_state) # update previous_state 
@@ -55,12 +78,23 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
     return t
 
 def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dual=False):
+    """Generates transitions for right context sensitive rewrite rules
+
+        Args:
+            IN (list): list of input symbols
+            OUT (list): list of output symbols
+            q0 (str, optional): initial state. Defaults to "<λ>".
+            Lcon (list, optional): left context already seen. Defaults to []
+            dual(bool, optional): switches transition generation to account for dual contexts. Defaults to False.
+
+        Returns:
+            list: List of transitions
+        """
     t = []
     
     for context in contexts:
         context = context.replace("_", "")
         for _in, _out in zip(IN, OUT):
-           
             if dual: # function switches behaviour when generating transitions for dual context rules
                 next_state = Lcon[0]
                 previous_state = cfx(next_state)
@@ -100,7 +134,16 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
     return t
 
 def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
-    
+    """Generates transitions for dual context sensitive rewrite rules
+
+        Args:
+            IN (list): list of input symbols
+            OUT (list): list of output symbols
+            q0 (str, optional): initial state. Defaults to "<λ>".
+
+        Returns:
+            list: List of transitions
+        """
     t = []
     for context in contexts:
         left_context = [context.split("_")[0]]
@@ -113,9 +156,19 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
         t.extend(dual_trans)  
     return t
         
-def get_transitions(in_strings, out_strings, contexts):
+def get_transitions(in_syms, out_syms, contexts):
+    """Gets all possible transitions from user strings and contexts
+
+    Args:
+        in_syms (str): string of space delimited input symbols
+        out_syms (str): string of space delimited output symbols
+        contexts (list): list of contexts
+
+    Returns:
+        list: list of all transitions to be turned into a dictionary
+    """
     
-    IN, OUT = in_strings.split(), out_strings.split()
+    IN, OUT = in_syms.split(), out_syms.split()
     if not IN or not OUT:
         raise NotImplementedError("Insertion and deletion rules not implemented yet. Stay tuned!")
     
