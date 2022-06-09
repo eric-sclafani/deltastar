@@ -170,13 +170,13 @@ def get_transitions(in_syms, out_syms, contexts):
     
     IN, OUT = in_syms.split(), out_syms.split()
  
-    # if not OUT: # deletion rule
+    if not OUT: # deletion rule
+        OUT = ("Ø " * len(IN)).strip().split()
         
-    #     for i in range(len(IN)):
-            
     
     
-    
+    if len(IN) != len(OUT):
+        raise ValueError("s1 and s2 must be of the same length")
     
     trans = [] # list of all transitions for current DFST
     Lcons, Rcons, Dualcons= parse_contexts(contexts)

@@ -11,11 +11,17 @@ class DFST:
     def __init__(self, s1:str, s2:str, contexts=[], v0=""):
         
         if not isinstance(s1, str) or not isinstance(s2,str):
-            raise ValueError("s1 and s2 must be of type 'str'")
+            raise TypeError("s1 and s2 must be of type 'str'")
         if not isinstance(contexts,list):
-            raise ValueError("contexts must be of type 'list'")
+            raise TypeError("contexts must be of type 'list'")
+        
         if "λ" in s1 or "λ" in s2 or "λ" in "".join(contexts):
             raise ValueError("'λ' is a reserved symbol and cannot be used in rewrite rules")
+        if "ψ" in s1 or "ψ" in s2 or "ψ" in "".join(contexts):
+            raise ValueError("'ψ' is a reserved symbol and cannot be used in rewrite rules")
+        if "Ø" in s1 or "Ø" in s2 or "Ø" in "".join(contexts):
+            raise ValueError("'Ø' is a reserved symbol and cannot be used in rewrite rules")
+
         
         self.q0 = "<λ>"                          
         self.v0 = v0
@@ -59,7 +65,6 @@ class DFST:
     
     def _finals(self):
         states = []
-        
         right = False
         
         # checks to see if the machine is strictly right context:
@@ -101,18 +106,17 @@ class DFST:
     
     @property                  
     def displayparams(self):
-        """ Prints rewrtie rule, sigma, gamma, Q, q0, v0, F, delta""" 
+        """ Prints rewrite rule, sigma, gamma, Q, q0, v0, F, delta""" 
         
-        print(f"\nRewrite rule: {self.s1} -> {self.s2} / {'_' if not self.contexts else self.contexts}")
+        print(f"\nRewrite rule: {self.s1} -> {self.s2 if self.s2 else 'Ø'} / {self.contexts if self.contexts else '_'}")
         print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF:{self.finals}")
         
         print(f"{'~'*7}Delta:{'~'*7}")
         
         for state, trans in sorted(self.delta.items(), key=lambda x: x =="<λ>"): # key makes sure initial state transitions are first
             for s, t in trans.items():
-                print(f"{state} --({s} : {t[1]})--> {t[0]}")
+                print(f"{state} --( {s} : { t[1]} )--> {t[0]}")
         print("~"*20,"\n")
-        
     def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
         """manually adds a transition to delta
 
@@ -182,7 +186,7 @@ class DFST:
                 if event == sg.WIN_CLOSED or event == "Quit":
                     break
             window.close()
- 
+    
     def rewrite(self, s):
         """ Given string s, perform transductions on it according to self.delta
         
@@ -206,15 +210,16 @@ class DFST:
                 output += sym.replace("ψ", char)
                 state = self.delta[state]["ψ"][0]
         
-        
-        # final string concatenation 
-        for final in list(filter(lambda x: x[0] == state, self.finals)):
+        for final in list(filter(lambda x: x[0] == state, self.finals)):# final string concatenation 
             if state == final[0]:
                 output += final[1]
-                
+        
+        if not self.s2:   
+            output = output.replace("Ø", "") # deletion rules       
         return self.v0 + output
  
 
-t = DFST("?", "m", ["p_"])
+t = DFST("x y", "", ["b_b", "c_c"])
+t.to_graph()
 t.displayparams
-t.to_graph(window=True)
+print(t.rewrite("cyc"))
