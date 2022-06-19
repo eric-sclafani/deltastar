@@ -2,7 +2,6 @@
 # Eric Sclafani
 from collections import defaultdict
 from more_itertools import collapse
-import PySimpleGUI as sg
 import pydot
 from transitions import get_transitions, dfx, cfx
   
@@ -43,7 +42,7 @@ class DFST:
             states.add(dfx(prev_state))
             delta[prev_state][in_sym] = [next_state, out_sym]
             
-        #! HIGHLY WIP: some prefix transitions are still incorrect / not generated. Prefix transitions will be returned in future update
+        #! ~~HIGHLY WIP~~~: some prefix transitions are still incorrect / not generated. Prefix transitions will be overhauled in a future update
         # prefix transitions: need to do them here instead of transitions.py bc I need access to the delta dict
         for state in states:
             
@@ -117,6 +116,7 @@ class DFST:
             for s, t in trans.items():
                 print(f"{state} --( {s} : { t[1]} )--> {t[0]}")
         print("~"*20,"\n")
+        
     def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
         """manually adds a transition to delta
 
@@ -175,26 +175,15 @@ class DFST:
                 i += 1
                 
         graph.write_png(file_name)
-        
-        if window:
-            sg.theme("DarkAmber")
-            layout = [[sg.Image(file_name)], [sg.Quit(key="Quit",)]]
-            window = sg.Window(file_name.replace(".png", ""), layout=layout, element_justification="c")
-          
-            while True: # main event loop
-                event, values = window.read()
-                if event == sg.WIN_CLOSED or event == "Quit":
-                    break
-            window.close()
     
     def rewrite(self, s):
         """ Given string s, perform transductions on it according to self.delta
         
-        Arguments:
+        Args:
             s (str): string to undergo specified transformations
             
         Returns:
-            output (str): new string that has undergone transformations
+            output (str): transformed string
         """
         output = ""
         state = self.q0
@@ -215,11 +204,11 @@ class DFST:
                 output += final[1]
         
         if not self.s2:   
-            output = output.replace("Ø", "") # deletion rules       
+            output = output.replace("Ø", "") # deletion rules  
+            
         return self.v0 + output
- 
 
-t = DFST("x y", "", ["b_b", "c_c"])
-t.to_graph()
-t.displayparams
-print(t.rewrite("cyc"))
+
+
+
+

@@ -31,7 +31,7 @@ pip3 install deltastar
 first project
 
 ## Note
-A large portion of the README will eventually be migrated to a separate documentation file, complete with more detailed explanations and examples.
+A large portion of the README will eventually be migrated to a readthedocs.io page, complete with more detailed explanations and examples.
 
 ## Usage and current implementations
 
@@ -169,18 +169,12 @@ I think this syntax is efficient since often times, especially in linguistics, y
 
 ### Currently working on:
 
-- implementing right contexts
-- implementing dual sided contexts
 
 ### Definite additions (no order):
-- right context handling
 - composition / intersection
-- word initial / final detection rules
 - handle insertion and deletion rules (INCLUDE EOW / BOW)
 - have an OSL / ISL mode switch
-- dot file drawing capability (similar to Pynini)
-- make user able to manually add / delete transitions
-- make a model pickle function?
+
 
 
 ### Possible additions:

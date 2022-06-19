@@ -1,6 +1,9 @@
 
 # -*- coding: utf8 -*-
 
+# this file contains functions for parsing the user's specified rewrite rule(s) and 
+# generating the appropriate transitions based off of contexts
+
 cfx = lambda string: f"<{string}>"                # circumfix func
 dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
     
@@ -55,7 +58,6 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
             list: List of transitions
         """
     t = []
-    
     for context in contexts:
         context = context.replace("_","")
         for _in, _out in zip(IN, OUT):
@@ -73,8 +75,7 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
                 previous_state = cfx(next_state) # update previous_state 
                 
             t.append( (previous_state, _in, q0, _out) ) 
-            t.append( (previous_state, "ψ", q0, "ψ") )
-                
+            t.append( (previous_state, "ψ", q0, "ψ") )          
     return t
 
 def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dual=False):
@@ -91,7 +92,6 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
             list: List of transitions
         """
     t = []
-    
     for context in contexts:
         context = context.replace("_", "")
         for _in, _out in zip(IN, OUT):
@@ -129,8 +129,7 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
                 output = dfx(previous_state).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
             except IndexError:
                         output = dfx(previous_state) 
-            t.append( (previous_state, "ψ", q0, output + "ψ"))    
-              
+            t.append( (previous_state, "ψ", q0, output + "ψ"))             
     return t
 
 def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
@@ -169,12 +168,14 @@ def get_transitions(in_syms, out_syms, contexts):
     """
     
     IN, OUT = in_syms.split(), out_syms.split()
- 
-    if not OUT: # deletion rule
+    
+    if not OUT: # deletion rule handling
         OUT = ("Ø " * len(IN)).strip().split()
+
+    elif not IN: # insertion rule handling
+        raise NotImplementedError("Insertion rules not implemented yet. Stay tuned~")
         
-    
-    
+        
     if len(IN) != len(OUT):
         raise ValueError("s1 and s2 must be of the same length")
     

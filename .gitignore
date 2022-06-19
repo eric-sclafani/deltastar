@@ -132,3 +132,4 @@ dmypy.json
 # misc
 *.png 
 my_test_file.py
+english_rewrite_rules.py
