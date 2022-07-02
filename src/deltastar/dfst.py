@@ -1,100 +1,37 @@
 
 # Eric Sclafani
 from collections import defaultdict
-from more_itertools import collapse
 import pydot
-from transitions import get_transitions, dfx, cfx
+from transitions import get_transitions, dfx, cfx, PH
   
 class DFST:
 
-    def __init__(self, s1:str, s2:str, contexts=[], v0=""):
+    def __init__(self, pairs:list[str], contexts=[], v0=""):
         
-        if not isinstance(s1, str) or not isinstance(s2,str):
-            raise TypeError("s1 and s2 must be of type 'str'")
-        if not isinstance(contexts,list):
-            raise TypeError("contexts must be of type 'list'")
-        
-        if "λ" in s1 or "λ" in s2 or "λ" in "".join(contexts):
-            raise ValueError("'λ' is a reserved symbol and cannot be used in rewrite rules")
-        if "ψ" in s1 or "ψ" in s2 or "ψ" in "".join(contexts):
-            raise ValueError("'ψ' is a reserved symbol and cannot be used in rewrite rules")
-        if "Ø" in s1 or "Ø" in s2 or "Ø" in "".join(contexts):
-            raise ValueError("'Ø' is a reserved symbol and cannot be used in rewrite rules")
-
-        
+        #! change this architecture to be compatible with dataclass?
         self.q0 = "<λ>"                          
         self.v0 = v0
-        self.s1 = s1
-        self.s2 = s2  
+        self.pairs = pairs
         self.contexts = contexts                      
-        self.delta = self._generate_delta(self.s1, self.s2, self.contexts)
-        self.finals = self._finals()
+        self.delta = self._generate_delta(self.pairs, self.contexts)
         self.Q = list(self.delta.keys())         
-    
-    def _generate_delta(self, s1, s2, contexts):
         
-        states = set()
+    def __repr__(self):
+        
+        if self.contexts:
+        
+            rules = f"{x} -> {y} / {}"
+            
+    
+    def _generate_delta(self, pairs,contexts):
+        
         delta = defaultdict(lambda: defaultdict(dict))
-        transitions = get_transitions(s1, s2, contexts)
+        transitions = get_transitions(pairs, contexts)
         
         for trans in transitions:
-            prev_state, in_sym, next_state, out_sym = trans
-            states.add(dfx(prev_state))
-            delta[prev_state][in_sym] = [next_state, out_sym]
-            
-        #! ~~HIGHLY WIP~~~: some prefix transitions are still incorrect / not generated. Prefix transitions will be overhauled in a future update
-        # prefix transitions: need to do them here instead of transitions.py bc I need access to the delta dict
-        for state in states:
-            
-            prefix = ""
-            for sym in state:
-                prefix += sym # rebuild preix state name symbol by symbol
-                
-                # prefix level transitions
-                if prefix != state: # disallow self looping transitions (aka stops before it reaches last symbol of state
-                    if not delta[cfx(state)].get(prefix[-1]): # check to see if current state does not already have an outgoing transition with last symbol of prefix
-                        if state[-1] + sym == prefix: # very important check: if the last symbol of the state + current symbol == the prefix. Without this check, false transitions can be created
-                            delta[cfx(state)][prefix[-1]] = [cfx(prefix), prefix[-1]]
-                        
-                # character level transitions (need these too since the prefix level doesn't capture all possible transitions)
-                if not delta[cfx(state)].get(sym) and state != "λ": # check if outgoing transition already exists with input char from state and disallow q0 self loop                       
-                    if sym != state and cfx(sym) in delta: 
-                        delta[cfx(state)][sym] = [cfx(sym), sym]
-        return delta
-    
-    def _finals(self):
-        states = []
-        right = False
-        
-        # checks to see if the machine is strictly right context:
-        # after collapsing, if second entry == lambda, then we know for sure it's a right context and not a dual one
-        # need to do this because dual contexts have different rules for state outputs than strictly right
-        check_right = list(collapse([val for state, transition in self.delta.items() for val in transition.values()]))
-        if check_right[1] == "λ":
-            right = True
-        
-        for state, transitions in self.delta.items():
-            seen_left_context = ""
-            for in_sym, out_trans in transitions.items():
-                
-                if right:
-                    if out_trans[1] == "λ":
-                        state_output = dfx(out_trans[0])
-                        states.append((out_trans[0], state_output))   
-                         
-                else: # is a dual context
-                    # this condition block keeps track of left contexts and subtracts them from right context state names when processing a dual context
-                    if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != "ψ" and in_sym == out_trans[1]:
-                        seen_left_context += in_sym
-                        
-                    elif out_trans[1] == "λ": 
-                        if dfx(out_trans[0]).startswith(seen_left_context) and seen_left_context != dfx(out_trans[0]): 
-                            
-                            state_output = dfx(out_trans[0]).replace(seen_left_context,"",1)
-                        else:
-                            state_output = dfx(out_trans[0]) 
-                        states.append((out_trans[0], state_output))
-        return states
+            start, insym = trans.start.label, trans.insym
+            end, outsym = trans.end, trans.outsym 
+            delta[start][insym] = [end, outsym]
                 
     @property
     def sigma(self):
@@ -116,7 +53,7 @@ class DFST:
             for s, t in trans.items():
                 print(f"{state} --( {s} : { t[1]} )--> {t[0]}")
         print("~"*20,"\n")
-        
+    
     def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
         """manually adds a transition to delta
 
@@ -129,7 +66,8 @@ class DFST:
         self.delta[prev_state][in_sym] = [next_state, out_sym]
            
     def removetransition(self, prev_state:str, in_sym:str,):
-        """manually removes a transition from delta. Note: removing certain transitions can break the FST.
+        """manually removes a transition from delta. 
+           Note: removing certain transitions can break the FST completely.
 
         Args:
             prev_state (str): state to delete a transition from
@@ -152,7 +90,7 @@ class DFST:
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
                 
-                if not extra_edges and in_sym == "ψ":
+                if not extra_edges and in_sym == PH:
                     continue
                 
                 prev_state = dfx(state)
@@ -195,18 +133,34 @@ class DFST:
                 state = self.delta[state][char][0]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
-                sym = self.delta[state]["ψ"][1]
-                output += sym.replace("ψ", char)
-                state = self.delta[state]["ψ"][0]
+                sym = self.delta[state][PH][1]
+                output += sym.replace(PH, char)
+                state = self.delta[state][PH][0]
         
-        for final in list(filter(lambda x: x[0] == state, self.finals)):# final string concatenation 
-            if state == final[0]:
-                output += final[1]
+        # for final in list(filter(lambda x: x[0] == state, self.finals)):# final string concatenation 
+        #     if state == final[0]:
+        #         output += final[1]
         
-        if not self.s2:   
-            output = output.replace("Ø", "") # deletion rules  
+        #! no longer working
+        # if not self.s2:   
+        #     output = output.replace("Ø", "") # deletion rules  
             
         return self.v0 + output
+    
+    
+    
+    
+    
+#! write a function that will parse the useres specified rules and return a DFST object
+    
+doubles = [
+    ("a", "b"),
+    ("x", "y")
+]    
+    
+d = DFST(doubles, ["r_"])
+
+d.displayparams
 
 
 
