@@ -1,51 +1,35 @@
 
 # Eric Sclafani
 from collections import defaultdict
+from dataclasses import dataclass
 import pydot
 from transitions import get_transitions, dfx, cfx, PH
   
+@dataclass
 class DFST:
-
-    def __init__(self, pairs:list[str], contexts=[], v0=""):
-        
-        #! change this architecture to be compatible with dataclass?
-        self.q0 = "<λ>"                          
-        self.v0 = v0
-        self.pairs = pairs
-        self.contexts = contexts                      
-        self.delta = self._generate_delta(self.pairs, self.contexts)
-        self.Q = list(self.delta.keys())         
-        
-    def __repr__(self):
-        
-        if self.contexts:
-        
-            rules = f"{x} -> {y} / {}"
-            
-    
-    def _generate_delta(self, pairs,contexts):
-        
-        delta = defaultdict(lambda: defaultdict(dict))
-        transitions = get_transitions(pairs, contexts)
-        
-        for trans in transitions:
-            start, insym = trans.start.label, trans.insym
-            end, outsym = trans.end, trans.outsym 
-            delta[start][insym] = [end, outsym]
-                
-    @property
+                             
+    delta: defaultdict
+    rules:list
+    v0:str
+           
     def sigma(self):
         return set(sym for transitions in self.delta.values() for sym in transitions.keys())  
-    @property
+    
     def gamma(self):
         return set(sym[1] for transitions in self.delta.values() for sym in transitions.values()) 
     
-    @property                  
+    def Q(self):
+        return list(self.delta.keys())
+                    
     def displayparams(self):
         """ Prints rewrite rule, sigma, gamma, Q, q0, v0, F, delta""" 
         
-        print(f"\nRewrite rule: {self.s1} -> {self.s2 if self.s2 else 'Ø'} / {self.contexts if self.contexts else '_'}")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF:{self.finals}")
+        print(f"{'~'*7}Rewrite rules:{'~'*7}")
+        for rule in self.rules:
+            print(rule)
+            
+        print("~"*28,"\n")
+        print(f"Σ: {self.sigma()}\nΓ: {self.gamma()}\nQ: {set(self.Q())}\nq0: <>\nv0: {None if not self.v0 else self.v0}\nF: None")
         
         print(f"{'~'*7}Delta:{'~'*7}")
         
@@ -115,14 +99,7 @@ class DFST:
         graph.write_png(file_name)
     
     def rewrite(self, s):
-        """ Given string s, perform transductions on it according to self.delta
         
-        Args:
-            s (str): string to undergo specified transformations
-            
-        Returns:
-            output (str): transformed string
-        """
         output = ""
         state = self.q0
         
@@ -136,32 +113,56 @@ class DFST:
                 sym = self.delta[state][PH][1]
                 output += sym.replace(PH, char)
                 state = self.delta[state][PH][0]
-        
-        # for final in list(filter(lambda x: x[0] == state, self.finals)):# final string concatenation 
-        #     if state == final[0]:
-        #         output += final[1]
-        
-        #! no longer working
-        # if not self.s2:   
-        #     output = output.replace("Ø", "") # deletion rules  
             
         return self.v0 + output
     
+
+    
+def transducer(pairs:list[tuple], contexts=[], v0="") ->  DFST:
+    
+    IN = [pair[0] for pair in pairs]
+    OUT = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
+    rules = [] # store string representations of mappings for representing the DFST
+    
+    if contexts: # context dependent rewrile rules
+        for con in contexts:
+            for _in, _out in zip(IN,OUT):
+                rules.append(f"{_in} -> {_out} / {con}")
+                     
+    else: # context free rewrite rules  
+        for _in, _out in zip(IN,OUT):
+                rules.append(f"{_in} -> {_out} / _")
+    
+    delta = defaultdict(lambda: defaultdict(dict))
+    transitions = get_transitions(IN, OUT, contexts)
+    
+    for trans in transitions:
+        start, insym = trans.start.label, trans.insym
+        end, outsym = trans.end, trans.outsym 
+        delta[start][insym] = [end, outsym]
+        
+        
+    return DFST(delta, rules, v0)
+        
+
     
     
     
     
-#! write a function that will parse the useres specified rules and return a DFST object
+    
+
+
     
 doubles = [
     ("a", "b"),
     ("x", "y")
 ]    
-    
-d = DFST(doubles, ["r_"])
 
-d.displayparams
 
+
+t = transducer(doubles, ["p_", "w_"])
+
+t.displayparams()
 
 
 

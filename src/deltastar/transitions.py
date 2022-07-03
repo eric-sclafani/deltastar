@@ -151,12 +151,9 @@ def prefix_transitions():
 
 
         
-def get_transitions(pairs, contexts=[]):
+def get_transitions(IN, OUT, contexts):
     
-    IN = [pair[0] for pair in pairs]
-    OUT = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
-
-    trans = [] # list of all transitions for current DFST
+    trans = [] # list of all transitions 
     Lcons, Rcons, Dualcons= parse_contexts(contexts)
     
     if not contexts:
@@ -171,6 +168,8 @@ def get_transitions(pairs, contexts=[]):
     return trans
 
 
+
+
 if __name__ == "__main__":
     doubles = [
         ("a", "b"),
@@ -180,9 +179,7 @@ if __name__ == "__main__":
 
     f = get_transitions(doubles, ["m_p"])
 
-
-    for l in f:
-        print(l)
+    print(f)
 
 
 
