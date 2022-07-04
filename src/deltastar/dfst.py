@@ -4,13 +4,17 @@ from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 from transitions import get_transitions, dfx, cfx, PH
-  
+from typing import List
+from tabulate import tabulate 
+
+
 @dataclass
 class DFST:
                              
     delta: defaultdict
-    rules:list
+    rules:List[str]
     v0:str
+    q0:str = "<λ>"
            
     def sigma(self):
         return set(sym for transitions in self.delta.values() for sym in transitions.keys())  
@@ -24,19 +28,21 @@ class DFST:
     def displayparams(self):
         """ Prints rewrite rule, sigma, gamma, Q, q0, v0, F, delta""" 
         
-        print(f"{'~'*7}Rewrite rules:{'~'*7}")
+        print(f"\n{'~'*7}Rewrite rules:{'~'*7}")
         for rule in self.rules:
             print(rule)
             
         print("~"*28,"\n")
-        print(f"Σ: {self.sigma()}\nΓ: {self.gamma()}\nQ: {set(self.Q())}\nq0: <>\nv0: {None if not self.v0 else self.v0}\nF: None")
+        print(f"Σ: {self.sigma()}\nΓ: {self.gamma()}\nQ: {set(self.Q())}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: None")
         
-        print(f"{'~'*7}Delta:{'~'*7}")
+        # print(f"{'~'*7}Delta:{'~'*7}")
         
+        transitions = []
         for state, trans in sorted(self.delta.items(), key=lambda x: x =="<λ>"): # key makes sure initial state transitions are first
             for s, t in trans.items():
-                print(f"{state} --( {s} : { t[1]} )--> {t[0]}")
-        print("~"*20,"\n")
+               transitions.append([state, s, t[1], t[0]])
+        
+        print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"]))
     
     def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
         """manually adds a transition to delta
@@ -62,7 +68,7 @@ class DFST:
         except KeyError:
             raise KeyError(f"state '{prev_state}' with input symbol '{in_sym}' not found")
         
-    def to_graph(self, file_name="my_machine.png",window=False, extra_edges=True):
+    def to_graph(self, file_name="my_machine.png", extra_edges=True):
          
         if not file_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
@@ -77,19 +83,20 @@ class DFST:
                 if not extra_edges and in_sym == PH:
                     continue
                 
-                prev_state = dfx(state)
-                next_state = dfx(out_trans[0])
+                prev_state = state
+                next_state = out_trans[0]
                 
-                if cfx(prev_state) == self.q0 and i == 0: # i enforces that this edge only gets created once
+                if prev_state == self.q0 and i == 0: # i enforces that this edge only gets created once
                     graph.add_edge(pydot.Edge("initial", prev_state))
                 
-                # if we have right context transitions, states need to output themselves
-                for final in self.finals:
-                    if cfx(prev_state) == final[0]: 
-                        prev_state = f"{prev_state}\,{final[1]}"
+                #! broken
+                # # if we have right context transitions, states need to output themselves
+                # for final in self.finals:
+                #     if cfx(prev_state) == final[0]: 
+                #         prev_state = f"{prev_state}\,{final[1]}"
                         
-                    if cfx(next_state) == final[0]:
-                        next_state = f"{next_state}\,{final[1]}"
+                #     if cfx(next_state) == final[0]:
+                #         next_state = f"{next_state}\,{final[1]}"
                           
                 graph.add_node(pydot.Node(prev_state, shape="doublecircle"))
                 graph.add_node(pydot.Node(next_state, shape="doublecircle"))
@@ -103,10 +110,10 @@ class DFST:
         output = ""
         state = self.q0
         
-        for char in s:  
+        for char in s.split():  
             try: # attempt to find context transitions
                 sym = self.delta[state][char][1] 
-                output += sym if sym != "λ" else ""
+                output += sym + " " if sym != "λ" else "" # lambda here for right contexts i think?
                 state = self.delta[state][char][0]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
@@ -118,11 +125,11 @@ class DFST:
     
 
     
-def transducer(pairs:list[tuple], contexts=[], v0="") ->  DFST:
+def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     
     IN = [pair[0] for pair in pairs]
     OUT = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
-    rules = [] # store string representations of mappings for representing the DFST
+    rules = [] # store string representations of rewrite rules 
     
     if contexts: # context dependent rewrile rules
         for con in contexts:
@@ -137,8 +144,8 @@ def transducer(pairs:list[tuple], contexts=[], v0="") ->  DFST:
     transitions = get_transitions(IN, OUT, contexts)
     
     for trans in transitions:
-        start, insym = trans.start.label, trans.insym
-        end, outsym = trans.end, trans.outsym 
+        start, insym = str(trans.start), trans.insym
+        end, outsym = str(trans.end), trans.outsym 
         delta[start][insym] = [end, outsym]
         
         
@@ -154,16 +161,17 @@ def transducer(pairs:list[tuple], contexts=[], v0="") ->  DFST:
 
     
 doubles = [
-    ("a", "b"),
-    ("x", "y")
+    ("[mod=imp]", "be"),
 ]    
 
 
 
-t = transducer(doubles, ["p_", "w_"])
+t = transducer(doubles, ["x_", "y_"])
 
-t.displayparams()
+t.to_graph()
 
+
+print(t.rewrite("x [mod=imp] y [mod=imp]"))
 
 
 

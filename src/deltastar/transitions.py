@@ -41,6 +41,7 @@ class Tran:
      
 def parse_contexts(contexts):
    
+    # sanity checks
     for context in contexts:
         if not isinstance(context, str):
             raise TypeError(f"{context} must be of type 'str'")
@@ -171,16 +172,8 @@ def get_transitions(IN, OUT, contexts):
 
 
 if __name__ == "__main__":
-    doubles = [
-        ("a", "b"),
-        ("x", "y")
-    ]    
+    pass
     
-
-    f = get_transitions(doubles, ["m_p"])
-
-    print(f)
-
 
 
 
