@@ -3,7 +3,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 import pydot
-from transitions import get_transitions, dfx, cfx, PH
+from transitions import get_transitions, PH
 from typing import List
 from tabulate import tabulate 
 
@@ -12,37 +12,31 @@ from tabulate import tabulate
 class DFST:
                              
     delta: defaultdict
+    Q:List[str]
+    sigma:set
+    gamma:set
     rules:List[str]
-    v0:str
+    v0:str = ""
     q0:str = "<λ>"
-           
-    def sigma(self):
-        return set(sym for transitions in self.delta.values() for sym in transitions.keys())  
     
-    def gamma(self):
-        return set(sym[1] for transitions in self.delta.values() for sym in transitions.values()) 
-    
-    def Q(self):
-        return list(self.delta.keys())
-                    
+    @property                    
     def displayparams(self):
         """ Prints rewrite rule, sigma, gamma, Q, q0, v0, F, delta""" 
         
         print(f"\n{'~'*7}Rewrite rules:{'~'*7}")
-        for rule in self.rules:
-            print(rule)
-            
-        print("~"*28,"\n")
-        print(f"Σ: {self.sigma()}\nΓ: {self.gamma()}\nQ: {set(self.Q())}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: None")
+        print(*self.rules, sep="\n")
         
-        # print(f"{'~'*7}Delta:{'~'*7}")
+        print("~"*28,"\n")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: Not Implemented")
+        
+        print(f"Delta:")
         
         transitions = []
         for state, trans in sorted(self.delta.items(), key=lambda x: x =="<λ>"): # key makes sure initial state transitions are first
             for s, t in trans.items():
                transitions.append([state, s, t[1], t[0]])
         
-        print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"]))
+        print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"], tablefmt="fancy_outline"))
     
     def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
         """manually adds a transition to delta
@@ -140,16 +134,11 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
         for _in, _out in zip(IN,OUT):
                 rules.append(f"{_in} -> {_out} / _")
     
-    delta = defaultdict(lambda: defaultdict(dict))
-    transitions = get_transitions(IN, OUT, contexts)
     
-    for trans in transitions:
-        start, insym = str(trans.start), trans.insym
-        end, outsym = str(trans.end), trans.outsym 
-        delta[start][insym] = [end, outsym]
+    delta, Q, sigma, gamma = get_transitions(IN, OUT, contexts)
+    
         
-        
-    return DFST(delta, rules, v0)
+    return DFST(delta, Q, sigma, gamma, rules, v0)
         
 
     
@@ -168,10 +157,8 @@ doubles = [
 
 t = transducer(doubles, ["x_", "y_"])
 
-t.to_graph()
 
-
-print(t.rewrite("x [mod=imp] y [mod=imp]"))
+t.displayparams
 
 
 

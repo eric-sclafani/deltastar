@@ -4,25 +4,23 @@
 # this file contains functions for parsing the user's specified rewrite rule(s) and 
 # generating the appropriate transitions based off of contexts
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Imports and other instantiations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-from dataclasses import dataclass, field
-from more_itertools import collapse
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Imports and other instantiations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+from collections import defaultdict
+from dataclasses import dataclass
 
 global PH
 PH = "⊗"
 cfx = lambda string: f"<{string}>"                # circumfix func
 dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 @dataclass
 class State:
     
     label:str
     output: str = None
     initial:bool = False
-    outgoingedges:list = field(default_factory=lambda: []) # lets you use mutable default parameters
     
     def __repr__(self):
         return self.label
@@ -37,7 +35,10 @@ class Tran:
     istransduction:bool = False
     
     def __repr__(self):
-        return f"({self.start} |{self.insym} -> {self.outsym}| {self.end})"
+        return f"({self.start} |{self.insym} -> {self.outsym}| {self.end})" 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    
+    
      
 def parse_contexts(contexts):
    
@@ -78,6 +79,7 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
                 t.append(Tran(State(start), sym, sym, State(cfx(end))))
                 t.append(Tran(State(start), PH, PH, State(q0)))
                 
+                #! experimental (needs testing)
                 if len(set(dfx(start))) == 1 and len(set(dfx(end))) == 1: # beginning of context can repeat arbitrary number of times. Checks to see if prev and next states contain the exact same symbols
                     t.append(Tran(State(cfx(end)), sym, sym, cfx(end)))
                     
@@ -104,6 +106,7 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
                 end += sym
                 t.append(Tran(State(start), sym, "λ", State(cfx(end)))) # all transitions moving to the right will output the empty string ("λ")
                 
+                
                 if start == q0: # initial state gets a PH:PH transition
                     t.append(Tran(State(start), PH,PH, State(q0)))
                 else:
@@ -114,7 +117,8 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
 
                     t.append(Tran(State(start), PH, output + PH, State(q0))) # if unknown symbol, need to output the state name along with PH symbol
 
-                if len(end) == 1 and not dual:  # outdated block
+                #! experimental (needs testing)
+                if len(end) == 1 and not dual:  
                     t.append(Tran(State(cfx(end)), sym, sym, State(cfx(end))))
                     
                 start = cfx(end) 
@@ -125,7 +129,7 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
             try:
                 output = dfx(start).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
             except IndexError:
-                        output = dfx(start) 
+                output = dfx(start) 
                            
             t.append(Tran(State(start), PH, output+PH, State(q0)))          
     return t
@@ -144,12 +148,23 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
         t.extend(dual_trans)  
     return t
 
-def generate_final_mappings():
-    pass
 
 def prefix_transitions():
     pass
 
+def generate_final_mappings():
+    pass
+
+def trans_to_dict(trans):
+    
+    transdict = defaultdict(lambda: defaultdict(dict))
+    
+    for trans in trans:
+        start, insym = str(trans.start), trans.insym
+        end, outsym = str(trans.end), trans.outsym 
+        transdict[start][insym] = [end, outsym]
+        
+    return transdict
 
         
 def get_transitions(IN, OUT, contexts):
@@ -166,68 +181,17 @@ def get_transitions(IN, OUT, contexts):
     if Dualcons:
         trans += generate_dual_context_transitions(IN, OUT, Dualcons)
         
-    return trans
-
-
-
-
-if __name__ == "__main__":
-    pass
+    delta = trans_to_dict(trans)
     
-
-
-
-
-#  #! ~~HIGHLY WIP~~~: some prefix transitions are still incorrect / not generated. Prefix transitions will be overhauled in a future update
-#         # prefix transitions: need to do them here instead of transitions.py bc I need access to the delta dict
-#         for state in states:
-            
-#             prefix = ""
-#             for sym in state:
-#                 prefix += sym # rebuild prefix state name symbol by symbol
-                
-#                 # prefix level transitions
-#                 if prefix != state: # disallow self looping transitions (aka stops before it reaches last symbol of state
-#                     if not delta[cfx(state)].get(prefix[-1]): # check to see if current state does not already have an outgoing transition with last symbol of prefix
-#                         if state[-1] + sym == prefix: # very important check: if the last symbol of the state + current symbol == the prefix. Without this check, false transitions can be created
-#                             delta[cfx(state)][prefix[-1]] = [cfx(prefix), prefix[-1]]
-                        
-#                 # character level transitions (need these too since the prefix level doesn't capture all possible transitions)
-#                 if not delta[cfx(state)].get(sym) and state != "λ": # check if outgoing transition already exists with input char from state and disallow q0 self loop                       
-#                     if sym != state and cfx(sym) in delta: 
-#                         delta[cfx(state)][sym] = [cfx(sym), sym]
-#         return delta
+    Q = list(delta.keys())
+    sigma =  set(sym for transitions in delta.values() for sym in transitions.keys())
+    gamma = set(sym[1] for transitions in delta.values() for sym in transitions.values()) 
     
-#     def _finals(self):
-#         states = []
-#         right = False
         
-#         # checks to see if the machine is strictly right context:
-#         # after collapsing, if second entry == lambda, then we know for sure it's a right context and not a dual one
-#         # need to do this because dual contexts have different rules for state outputs than strictly right
-#         check_right = list(collapse([val for state, transition in self.delta.items() for val in transition.values()]))
-#         if check_right[1] == "λ":
-#             right = True
-        
-#         for state, transitions in self.delta.items():
-#             seen_left_context = ""
-#             for in_sym, out_trans in transitions.items():
-                
-#                 if right:
-#                     if out_trans[1] == "λ": # makes sure self loops arent counted by checking if out symbol is lambda (empty)
-#                         state_output = dfx(out_trans[0])
-#                         states.append((out_trans[0], state_output))   
-                         
-#                 else: # is a dual context
-#                     # this condition block keeps track of left contexts and subtracts them from right context state names when processing a dual context
-#                     if out_trans[1] != "λ" and in_sym not in seen_left_context and in_sym != PH and in_sym == out_trans[1]:
-#                         seen_left_context += in_sym
-                        
-#                     elif out_trans[1] == "λ": 
-#                         if dfx(out_trans[0]).startswith(seen_left_context) and seen_left_context != dfx(out_trans[0]): 
-                            
-#                             state_output = dfx(out_trans[0]).replace(seen_left_context,"",1)
-#                         else:
-#                             state_output = dfx(out_trans[0]) 
-#                         states.append((out_trans[0], state_output))
-#         return states
+    #! perform prefix gen 
+    
+    #! perform final mappings and return alongside delta
+    
+   
+    return delta, Q, sigma, gamma
+
