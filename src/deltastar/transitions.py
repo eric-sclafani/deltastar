@@ -50,6 +50,7 @@ def parse_contexts(contexts):
             raise ValueError(f"{context} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
     
     # after splitting, check which side of list is not the empty string
+    #! maybe find a neater way of doing this? (more_itertools?)
     Lcons = list(filter(lambda x: x.split("_")[0] and not x.split("_")[1], contexts))
     Rcons = list(filter(lambda x: x.split("_")[1] and not x.split("_")[0], contexts))
     Dualcons = list(filter(lambda x: x.split("_")[1] and x.split("_")[0], contexts))
@@ -149,8 +150,25 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
     return t
 
 
-def prefix_transitions():
-    pass
+def prefix_transitions(delta, Q, sigma):
+    """Updates delta with prefix transitions by reference"""
+    
+    Q = list(map(lambda x: dfx(x), Q)) # remove < > from states
+    for state in Q:
+        
+        # prefix level transitions
+        prfxstate = state[1:]
+        
+        for sym in sigma:
+            
+            while True:
+                pass
+            
+                        
+            
+                
+        
+        
 
 def generate_final_mappings():
     pass
@@ -172,6 +190,8 @@ def get_transitions(IN, OUT, contexts):
     trans = [] # list of all transitions 
     Lcons, Rcons, Dualcons= parse_contexts(contexts)
     
+    
+    #! maybe find a neater way of doing this? (more_itertools?)
     if not contexts:
         trans += generate_context_free_transitions(IN, OUT)
     if Lcons:
@@ -182,16 +202,36 @@ def get_transitions(IN, OUT, contexts):
         trans += generate_dual_context_transitions(IN, OUT, Dualcons)
         
     delta = trans_to_dict(trans)
-    
     Q = list(delta.keys())
+    
+    #! maybe find a neater way of doing this? (more_itertools?)
     sigma =  set(sym for transitions in delta.values() for sym in transitions.keys())
     gamma = set(sym[1] for transitions in delta.values() for sym in transitions.values()) 
     
-        
-    #! perform prefix gen 
+    # updates delta with prefix transitions by reference
+    prefix_transitions(delta, Q, sigma)
     
-    #! perform final mappings and return alongside delta
+    #! perform final mappings and return them to dfst.py
     
    
     return delta, Q, sigma, gamma
+
+
+
+
+def main():
+    
+    d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "z_"])
+    
+    for state,trans in d.items():
+        for s, t in trans:
+            print(f"START:{state}, INSYM:{s}, OUTSYM:{t[1]}, END:{t[0]}")
+
+if __name__ == "__main__":
+    szfz = "poop"
+    
+    #main()
+   
+    
+    
 
