@@ -3,7 +3,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 import pydot
-from transitions import get_transitions, PH
+from transitions import get_transitions, PH, State
 from typing import List
 from tabulate import tabulate 
 
@@ -37,30 +37,6 @@ class DFST:
                transitions.append([state, s, t[1], t[0]])
         
         print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"], tablefmt="fancy_outline"))
-    
-    def addtransition(self, prev_state:str, in_sym:str, next_state:str, out_sym:str):
-        """manually adds a transition to delta
-
-        Args:
-            prev_state (str): state where transition begins
-            in_sym (str): input string
-            next_state (str): state where transition ends
-            out_sym (str): output string
-        """   
-        self.delta[prev_state][in_sym] = [next_state, out_sym]
-           
-    def removetransition(self, prev_state:str, in_sym:str,):
-        """manually removes a transition from delta. 
-           Note: removing certain transitions can break the FST completely.
-
-        Args:
-            prev_state (str): state to delete a transition from
-            in_sym (str): symbol transition to be deleted
-        """
-        try:
-            del self.delta[prev_state][in_sym]
-        except KeyError:
-            raise KeyError(f"state '{prev_state}' with input symbol '{in_sym}' not found")
         
     def to_graph(self, file_name="my_machine.png", extra_edges=True):
          
@@ -156,7 +132,6 @@ doubles = [
 
 
 t = transducer(doubles, ["x_", "y_"])
-
 
 t.displayparams
 

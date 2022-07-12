@@ -15,7 +15,7 @@ dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@dataclass
+@dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys
 class State:
     
     label:str
@@ -149,27 +149,37 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
         t.extend(dual_trans)  
     return t
 
-
 def prefix_transitions(delta, Q, sigma):
     """Updates delta with prefix transitions by reference"""
     
-    Q = list(map(lambda x: dfx(x), Q)) # remove < > from states
-    for state in Q:
-        
-        # prefix level transitions
-        prfxstate = state[1:]
-        
-        for sym in sigma:
-            
-            while True:
-                pass
-            
-                        
-            
-                
-        
-        
+    Q = list(map(lambda x: dfx(x.label), Q)) # remove < > from states
+    Q.remove("λ") # remove λ state 
+    
+    sigma = list(sigma)
+    sigma.remove(PH) # remove PH symbol from sigma since it doesnt have prefix transitions
+    
+    possible_states = defaultdict(lambda:[])   
 
+    for state in Q:
+    
+        # edge case: if state consists of one symbol (beginning of context), it does not get prefix transitions
+        if len(state) == 1:
+            possible_states[State(state)] = [State(s) for s in sigma]
+        else:
+            # exclude the first symbol because first symbol marks beginning of a "branch" of states (i.e. all states branching from state <a> begin with an "a")
+            # thus, in order to jump from one "branch" to another (i.e. <b> branch, <c> branch, etc..), we need to exclude the first symbol when generating prefix transitions
+            prefixstate = state[1:]  
+            
+            for _ in range(len(prefixstate)+1):
+                possible_states[State(state)].extend([State(prefixstate + sym) for sym in sigma])
+                prefixstate = prefixstate[1:]
+            
+    for k,v in possible_states.items():
+        print(k,v)
+            
+    
+    
+                
 def generate_final_mappings():
     pass
 
@@ -178,8 +188,8 @@ def trans_to_dict(trans):
     transdict = defaultdict(lambda: defaultdict(dict))
     
     for trans in trans:
-        start, insym = str(trans.start), trans.insym
-        end, outsym = str(trans.end), trans.outsym 
+        start, insym = trans.start, trans.insym
+        end, outsym = trans.end, trans.outsym 
         transdict[start][insym] = [end, outsym]
         
     return transdict
@@ -223,14 +233,11 @@ def main():
     
     d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "z_"])
     
-    for state,trans in d.items():
-        for s, t in trans:
-            print(f"START:{state}, INSYM:{s}, OUTSYM:{t[1]}, END:{t[0]}")
 
 if __name__ == "__main__":
     szfz = "poop"
     
-    #main()
+    main()
    
     
     
