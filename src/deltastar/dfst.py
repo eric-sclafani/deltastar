@@ -3,7 +3,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 import pydot
-from transitions import get_transitions, PH, State
+from transitions import get_transitions, PH
 from typing import List
 from tabulate import tabulate 
 
@@ -27,7 +27,7 @@ class DFST:
         print(*self.rules, sep="\n")
         
         print("~"*28,"\n")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: Not Implemented")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: Not Implemented Yet")
         
         print(f"Delta:")
         
@@ -57,7 +57,7 @@ class DFST:
                 next_state = out_trans[0]
                 
                 if prev_state == self.q0 and i == 0: # i enforces that this edge only gets created once
-                    graph.add_edge(pydot.Edge("initial", prev_state))
+                    graph.add_edge(pydot.Edge("initial", str(prev_state)))
                 
                 #! broken
                 # # if we have right context transitions, states need to output themselves
@@ -68,9 +68,9 @@ class DFST:
                 #     if cfx(next_state) == final[0]:
                 #         next_state = f"{next_state}\,{final[1]}"
                           
-                graph.add_node(pydot.Node(prev_state, shape="doublecircle"))
-                graph.add_node(pydot.Node(next_state, shape="doublecircle"))
-                graph.add_edge(pydot.Edge(prev_state, next_state, label=f"{in_sym}\:{out_trans[1]}"))
+                graph.add_node(pydot.Node(str(prev_state), shape="doublecircle"))
+                graph.add_node(pydot.Node(str(next_state), shape="doublecircle"))
+                graph.add_edge(pydot.Edge(str(prev_state), str(next_state), label=f"{in_sym}\:{out_trans[1]}"))
                 i += 1
                 
         graph.write_png(file_name)
@@ -99,41 +99,41 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     
     IN = [pair[0] for pair in pairs]
     OUT = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
-    rules = [] # store string representations of rewrite rules 
     
-    if contexts: # context dependent rewrile rules
+    # this condition block acquires the string representations of rewrite rules 
+    rules = [] 
+    if contexts: # context dependent 
         for con in contexts:
             for _in, _out in zip(IN,OUT):
                 rules.append(f"{_in} -> {_out} / {con}")
                      
-    else: # context free rewrite rules  
+    else: # context free 
         for _in, _out in zip(IN,OUT):
                 rules.append(f"{_in} -> {_out} / _")
     
     
     delta, Q, sigma, gamma = get_transitions(IN, OUT, contexts)
     
-        
     return DFST(delta, Q, sigma, gamma, rules, v0)
         
 
     
-    
-    
-    
+
     
 
 
     
 doubles = [
-    ("[mod=imp]", "be"),
+    ("a", "b"),
 ]    
 
 
 
-t = transducer(doubles, ["x_", "y_"])
+t = transducer(doubles, ["acab_"])
 
 t.displayparams
 
 
 
+for k,v in t.delta.items():
+    print(k, v)

@@ -42,19 +42,21 @@ class Tran:
      
 def parse_contexts(contexts):
    
-    # sanity checks
-    for context in contexts:
-        if not isinstance(context, str):
-            raise TypeError(f"{context} must be of type 'str'")
-        if "_" not in context:
-            raise ValueError(f"{context} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
+    Lcons, Rcons, Dualcons = [],[],[]
+    for con in contexts:
+        if not isinstance(con, str):
+            raise TypeError(f"{con} must be of type 'str'")
+        elif "_" not in con:
+            raise ValueError(f"{con} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
     
-    # after splitting, check which side of list is not the empty string
-    #! maybe find a neater way of doing this? (more_itertools?)
-    Lcons = list(filter(lambda x: x.split("_")[0] and not x.split("_")[1], contexts))
-    Rcons = list(filter(lambda x: x.split("_")[1] and not x.split("_")[0], contexts))
-    Dualcons = list(filter(lambda x: x.split("_")[1] and x.split("_")[0], contexts))
-            
+        # this block sorts contexts into their respective lists
+        if con.endswith("_"):
+            Lcons.append(con)
+        elif con.startswith("_"):
+            Rcons.append(con)
+        else:
+            Dualcons.append(con)
+        
     return Lcons, Rcons, Dualcons
 
 def generate_context_free_transitions(IN, OUT,q0="<λ>"):
@@ -132,7 +134,8 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
             except IndexError:
                 output = dfx(start) 
                            
-            t.append(Tran(State(start), PH, output+PH, State(q0)))          
+            t.append(Tran(State(start), PH, output+PH, State(q0)))      
+                
     return t
 
 def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
@@ -143,7 +146,9 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
         right_context = [context.split("_")[1]]
         
         left_trans = list(filter(lambda x: not x.istransduction, generate_left_context_transitions(IN, OUT, left_context , q0))) # filter out transduction transitions
+        
         right_trans = generate_right_context_transitions(IN, OUT, right_context, Lcon=left_context, dual=True)
+        
         dual_trans = left_trans + right_trans
        
         t.extend(dual_trans)  
@@ -154,32 +159,30 @@ def prefix_transitions(delta, Q, sigma):
     
     Q = list(map(lambda x: dfx(x.label), Q)) # remove < > from states
     Q.remove("λ") # remove λ state 
-    
     sigma = list(sigma)
     sigma.remove(PH) # remove PH symbol from sigma since it doesnt have prefix transitions
     
     possible_states = defaultdict(lambda:[])   
-
     for state in Q:
-    
         # edge case: if state consists of one symbol (beginning of context), it does not get prefix transitions
         if len(state) == 1:
             possible_states[State(state)] = [State(s) for s in sigma]
         else:
             # exclude the first symbol because first symbol marks beginning of a "branch" of states (i.e. all states branching from state <a> begin with an "a")
-            # thus, in order to jump from one "branch" to another (i.e. <b> branch, <c> branch, etc..), we need to exclude the first symbol when generating prefix transitions
+            # this also lets us jump from one "branch" to another (i.e. <b> branch, <c> branch, etc..)
             prefixstate = state[1:]  
             
             for _ in range(len(prefixstate)+1):
+                # generate all possible states each state can reach by combining the prefix with all symbols in sigma
                 possible_states[State(state)].extend([State(prefixstate + sym) for sym in sigma])
                 prefixstate = prefixstate[1:]
-            
-    for k,v in possible_states.items():
-        print(k,v)
+    
+    for state, pos_states in possible_states.items():
+        print(state, pos_states)
             
     
-    
-                
+            
+             
 def generate_final_mappings():
     pass
 
@@ -231,7 +234,7 @@ def get_transitions(IN, OUT, contexts):
 
 def main():
     
-    d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "z_"])
+    d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "c_"])
     
 
 if __name__ == "__main__":
