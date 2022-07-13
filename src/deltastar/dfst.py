@@ -7,6 +7,7 @@ from transitions import get_transitions, PH
 from typing import List
 from tabulate import tabulate 
 
+cfx = lambda string: f"<{string}>"
 
 @dataclass
 class DFST:
@@ -27,17 +28,20 @@ class DFST:
         print(*self.rules, sep="\n")
         
         print("~"*28,"\n")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: Not Implemented Yet")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: Not Implemented Yet")
         
         print(f"Delta:")
         
         transitions = []
         for state, trans in sorted(self.delta.items(), key=lambda x: x =="<λ>"): # key makes sure initial state transitions are first
             for s, t in trans.items():
-               transitions.append([state, s, t[1], t[0]])
+               transitions.append([cfx(state), s, t[0], cfx(t[1])])
         
         print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"], tablefmt="fancy_outline"))
-        
+    
+    
+    
+    #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~ NEEDS TO BE UPDATED ~~~~~~~~~~~~~~~~~~~~~~~~
     def to_graph(self, file_name="my_machine.png", extra_edges=True):
          
         if not file_name.endswith(".png"):
@@ -127,13 +131,7 @@ doubles = [
     ("a", "b"),
 ]    
 
-
-
-t = transducer(doubles, ["acab_"])
-
+t = transducer(doubles, ["acab_", "cc_", "z_"])
+t.to_graph()
 t.displayparams
 
-
-
-for k,v in t.delta.items():
-    print(k, v)

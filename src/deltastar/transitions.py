@@ -10,8 +10,6 @@ from dataclasses import dataclass
 
 global PH
 PH = "⊗"
-cfx = lambda string: f"<{string}>"                # circumfix func
-dfx = lambda string: string.strip("<").strip(">") # de-circumfix func
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,9 +20,21 @@ class State:
     output: str = None
     initial:bool = False
     
+    def __len__(self):
+        return len(self.label)
+
     def __repr__(self):
         return self.label
-   
+    
+    def __getitem__(self, idx):
+        string = self.label
+        
+        if isinstance(idx, slice): # idx is a slice object in this case
+            start,stop,step = idx.indices(len(string))
+            return "".join([string[i] for i in range(start,stop,step)])
+        else:
+            return string[idx]
+
 @dataclass
 class Tran:
     
@@ -37,9 +47,7 @@ class Tran:
     def __repr__(self):
         return f"({self.start} |{self.insym} -> {self.outsym}| {self.end})" 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
-    
-    
-     
+
 def parse_contexts(contexts):
    
     Lcons, Rcons, Dualcons = [],[],[]
@@ -59,7 +67,7 @@ def parse_contexts(contexts):
         
     return Lcons, Rcons, Dualcons
 
-def generate_context_free_transitions(IN, OUT,q0="<λ>"):
+def generate_context_free_transitions(IN, OUT,q0="λ"):
     
     # all CF transitions are self loops on initial state
     t = []
@@ -68,7 +76,7 @@ def generate_context_free_transitions(IN, OUT,q0="<λ>"):
         t.append(Tran(State(q0),PH, PH, State(q0)))
     return t
     
-def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
+def generate_left_context_transitions(IN, OUT, contexts, q0="λ"):
     
     t = []
     for context in contexts:
@@ -79,21 +87,21 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="<λ>"):
             
             for sym in context:                           
                 end += sym # build the next state symbol by symbol 
-                t.append(Tran(State(start), sym, sym, State(cfx(end))))
+                t.append(Tran(State(start), sym, sym, State(end)))
                 t.append(Tran(State(start), PH, PH, State(q0)))
                 
-                #! experimental (needs testing)
-                if len(set(dfx(start))) == 1 and len(set(dfx(end))) == 1: # beginning of context can repeat arbitrary number of times. Checks to see if prev and next states contain the exact same symbols
-                    t.append(Tran(State(cfx(end)), sym, sym, cfx(end)))
+                #! experimental (needs testing, but seems to be working right now)
+                if len(set(start)) == 1 and len(set(end)) == 1: # beginning of context can repeat arbitrary number of times. Checks to see if prev and next states contain the exact same symbols
+                    t.append(Tran(State(end), sym, sym, end))
                     
-                start = cfx(end) # update start state
+                start = end # update start state
             
             t.append(Tran(State(start), _in, _out, State(q0), istransduction=True)) 
             t.append(Tran(State(start), PH, PH, State(q0)))   
     return t
 
 
-def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dual=False):
+def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
    
     t = []
     for context in contexts:
@@ -102,37 +110,37 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="<λ>", Lcon=[],dua
             
             # transitions are different when generating dual contexts (i.e. start state is different)
             end = Lcon[0] if dual else "" 
-            start = cfx(end) if dual else q0
+            start = end if dual else q0
                  
             right_context = _in + context # input symbol is always the first contextual transition
             for sym in right_context[:-1]: # don't want to include the last symbol in context when generating states
                 end += sym
-                t.append(Tran(State(start), sym, "λ", State(cfx(end)))) # all transitions moving to the right will output the empty string ("λ")
+                t.append(Tran(State(start), sym, "λ", State(end))) # all transitions moving to the right will output the empty string ("λ")
                 
                 
                 if start == q0: # initial state gets a PH:PH transition
                     t.append(Tran(State(start), PH,PH, State(q0)))
                 else:
                     try:
-                        output = dfx(start).replace(Lcon[0],"") # for dual contexts, try to subtract the left context that has already been output
+                        output = start.replace(Lcon[0],"") # for dual contexts, try to subtract the left context that has already been output
                     except IndexError:
-                        output = dfx(start)   
+                        output = start   
 
                     t.append(Tran(State(start), PH, output + PH, State(q0))) # if unknown symbol, need to output the state name along with PH symbol
 
                 #! experimental (needs testing)
                 if len(end) == 1 and not dual:  
-                    t.append(Tran(State(cfx(end)), sym, sym, State(cfx(end))))
+                    t.append(Tran(State(end), sym, sym, State(end)))
                     
-                start = cfx(end) 
+                start = end
                 
             # reached the end of the context
             t.append(Tran(State(start), right_context[-1], _out+context, State(q0), istransduction=True)) # transduction: output out symbol + state name   
                 
             try:
-                output = dfx(start).replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
+                output = start.replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
             except IndexError:
-                output = dfx(start) 
+                output = start 
                            
             t.append(Tran(State(start), PH, output+PH, State(q0)))      
                 
@@ -145,6 +153,7 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
         left_context = [context.split("_")[0]]
         right_context = [context.split("_")[1]]
         
+        #! turn this into a for loop after renaming context functions
         left_trans = list(filter(lambda x: not x.istransduction, generate_left_context_transitions(IN, OUT, left_context , q0))) # filter out transduction transitions
         
         right_trans = generate_right_context_transitions(IN, OUT, right_context, Lcon=left_context, dual=True)
@@ -157,16 +166,17 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
 def prefix_transitions(delta, Q, sigma):
     """Updates delta with prefix transitions by reference"""
     
-    Q = list(map(lambda x: dfx(x.label), Q)) # remove < > from states
-    Q.remove("λ") # remove λ state 
+    Q.remove(State("λ")) # remove λ state 
     sigma = list(sigma)
     sigma.remove(PH) # remove PH symbol from sigma since it doesnt have prefix transitions
     
-    possible_states = defaultdict(lambda:[])   
+    possible_prefix_states = defaultdict(lambda:[])   
     for state in Q:
-        # edge case: if state consists of one symbol (beginning of context), it does not get prefix transitions
+        state = state.label 
+        
+        # edge case: if len(state) is 1 (beginning of context), does not get prefix transitions, only single symbol ones
         if len(state) == 1:
-            possible_states[State(state)] = [State(s) for s in sigma]
+            possible_prefix_states[State(state)] = [State(s) for s in sigma]
         else:
             # exclude the first symbol because first symbol marks beginning of a "branch" of states (i.e. all states branching from state <a> begin with an "a")
             # this also lets us jump from one "branch" to another (i.e. <b> branch, <c> branch, etc..)
@@ -174,11 +184,20 @@ def prefix_transitions(delta, Q, sigma):
             
             for _ in range(len(prefixstate)+1):
                 # generate all possible states each state can reach by combining the prefix with all symbols in sigma
-                possible_states[State(state)].extend([State(prefixstate + sym) for sym in sigma])
+                possible_prefix_states[State(state)].extend([State(prefixstate + sym) for sym in sigma])
+                
+                # shift prefix window to the right
                 prefixstate = prefixstate[1:]
     
-    for state, pos_states in possible_states.items():
-        print(state, pos_states)
+    for state, pfx_states in possible_prefix_states.items():
+        for pfxstate in pfx_states:
+            
+            if delta.get(pfxstate): # if the possible prefix state exists in delta
+                if not delta[state].get(pfxstate[-1]): # if the current state does not already have an outgoing arc with last seen symbol
+                    delta[state][pfxstate[-1]] = [pfxstate[-1], pfxstate]
+                    
+            
+            
             
     
             
@@ -193,7 +212,7 @@ def trans_to_dict(trans):
     for trans in trans:
         start, insym = trans.start, trans.insym
         end, outsym = trans.end, trans.outsym 
-        transdict[start][insym] = [end, outsym]
+        transdict[start][insym] = [outsym, end]
         
     return transdict
 
@@ -217,9 +236,8 @@ def get_transitions(IN, OUT, contexts):
     delta = trans_to_dict(trans)
     Q = list(delta.keys())
     
-    #! maybe find a neater way of doing this? (more_itertools?)
     sigma =  set(sym for transitions in delta.values() for sym in transitions.keys())
-    gamma = set(sym[1] for transitions in delta.values() for sym in transitions.values()) 
+    gamma = set(sym[0] for transitions in delta.values() for sym in transitions.values()) 
     
     # updates delta with prefix transitions by reference
     prefix_transitions(delta, Q, sigma)
@@ -234,7 +252,7 @@ def get_transitions(IN, OUT, contexts):
 
 def main():
     
-    d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "c_"])
+    d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "c_", "z_"])
     
 
 if __name__ == "__main__":
