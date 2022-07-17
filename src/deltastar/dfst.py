@@ -104,7 +104,7 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     IN = [pair[0] for pair in pairs]
     OUT = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
     
-    # this condition block acquires the string representations of rewrite rules 
+    # this condition block acquires the string representations of rewrite rules for displaying
     rules = [] 
     if contexts: # context dependent 
         for con in contexts:
@@ -131,7 +131,12 @@ doubles = [
     ("a", "b"),
 ]    
 
-t = transducer(doubles, ["acab_", "cc_", "z_"])
-t.to_graph()
-t.displayparams
+# t = transducer(doubles, ["[tns=pst] _ [mod=imp]"])
+# t.displayparams
+
+# x = transducer(doubles, ["a c a b _", "c c _"])
+# x.displayparams
+
+z = transducer(doubles, ["x y z _  m n",])
+z.displayparams
 

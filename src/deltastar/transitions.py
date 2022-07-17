@@ -8,12 +8,11 @@
 from collections import defaultdict
 from dataclasses import dataclass
 
-global PH
 PH = "⊗"
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys
+@dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
 class State:
     
     label:str
@@ -28,7 +27,6 @@ class State:
     
     def __getitem__(self, idx):
         string = self.label
-        
         if isinstance(idx, slice): # idx is a slice object in this case
             start,stop,step = idx.indices(len(string))
             return "".join([string[i] for i in range(start,stop,step)])
@@ -42,10 +40,10 @@ class Tran:
     insym:str
     outsym:str
     end:State
-    istransduction:bool = False
+    istransduction:bool = False 
     
     def __repr__(self):
-        return f"({self.start} |{self.insym} -> {self.outsym}| {self.end})" 
+        return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})" 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
 def parse_contexts(contexts):
@@ -57,14 +55,15 @@ def parse_contexts(contexts):
         elif "_" not in con:
             raise ValueError(f"{con} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
     
+        con = tuple(con.split())
+        
         # this block sorts contexts into their respective lists
-        if con.endswith("_"):
+        if con[-1] =="_":
             Lcons.append(con)
-        elif con.startswith("_"):
+        elif con[0] == "_":
             Rcons.append(con)
         else:
             Dualcons.append(con)
-        
     return Lcons, Rcons, Dualcons
 
 def generate_context_free_transitions(IN, OUT,q0="λ"):
@@ -79,13 +78,15 @@ def generate_context_free_transitions(IN, OUT,q0="λ"):
 def generate_left_context_transitions(IN, OUT, contexts, q0="λ"):
     
     t = []
+    
     for context in contexts:
-        context = context.replace("_","")
+        context = context[:-1] # exclude the list final hyphen
+        
         for _in, _out in zip(IN, OUT):
             start = q0
             end = ""             
             
-            for sym in context:                           
+            for sym in context:                        
                 end += sym # build the next state symbol by symbol 
                 t.append(Tran(State(start), sym, sym, State(end)))
                 t.append(Tran(State(start), PH, PH, State(q0)))
@@ -104,28 +105,32 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="λ"):
 def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
    
     t = []
+    
     for context in contexts:
-        context = context.replace("_", "")
         for _in, _out in zip(IN, OUT):
             
+            
             # transitions are different when generating dual contexts (i.e. start state is different)
-            end = Lcon[0] if dual else "" 
+            if dual:
+                left = "".join(Lcon[0])
+                
+            end =  left if dual else ""
             start = end if dual else q0
-                 
-            right_context = _in + context # input symbol is always the first contextual transition
-            for sym in right_context[:-1]: # don't want to include the last symbol in context when generating states
+            right_context = (_in,) + context # input symbol is always the first contextual transition. context is a tuple, so cast _in as a tuple and concat
+            
+            for sym in right_context[:-1]: # rightmost symbol is treated as the input for the transduction
                 end += sym
                 t.append(Tran(State(start), sym, "λ", State(end))) # all transitions moving to the right will output the empty string ("λ")
-                
-                
+
                 if start == q0: # initial state gets a PH:PH transition
                     t.append(Tran(State(start), PH,PH, State(q0)))
-                else:
+                    
+                elif dual:
                     try:
-                        output = start.replace(Lcon[0],"") # for dual contexts, try to subtract the left context that has already been output
+                        output = start.replace(left,"") # for dual contexts, try to subtract the left context that has already been output
                     except IndexError:
                         output = start   
-
+                        
                     t.append(Tran(State(start), PH, output + PH, State(q0))) # if unknown symbol, need to output the state name along with PH symbol
 
                 #! experimental (needs testing)
@@ -135,23 +140,30 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=
                 start = end
                 
             # reached the end of the context
-            t.append(Tran(State(start), right_context[-1], _out+context, State(q0), istransduction=True)) # transduction: output out symbol + state name   
-                
-            try:
-                output = start.replace(Lcon[0],"") # for dual contexts, subtract the left context that has already been output
+            mapping = _out + "".join(context)
+            t.append(Tran(State(start), right_context[-1], mapping, State(q0), istransduction=True)) # transduction: output out symbol + state name   
+             
+             
+             
+            #! WIP   
+            try:   
+                output = start.replace(left,"") # for dual contexts, subtract the left context that has already been output
             except IndexError:
-                output = start 
-                           
+                output = start
+            
             t.append(Tran(State(start), PH, output+PH, State(q0)))      
                 
     return t
 
-def generate_dual_context_transitions(IN, OUT, contexts,q0="<λ>"):
+def generate_dual_context_transitions(IN, OUT, contexts,q0="λ"):
 
     t = []
+    
     for context in contexts:
-        left_context = [context.split("_")[0]]
-        right_context = [context.split("_")[1]]
+        #! doesnt work :(
+        hyphen = context.index("_")
+        left_context = [context[:hyphen]]
+        right_context = [context[hyphen+1:]]
         
         #! turn this into a for loop after renaming context functions
         left_trans = list(filter(lambda x: not x.istransduction, generate_left_context_transitions(IN, OUT, left_context , q0))) # filter out transduction transitions
@@ -190,18 +202,26 @@ def prefix_transitions(delta, Q, sigma):
                 prefixstate = prefixstate[1:]
     
     for state, pfx_states in possible_prefix_states.items():
+        
         for pfxstate in pfx_states:
-            
             if delta.get(pfxstate): # if the possible prefix state exists in delta
-                if not delta[state].get(pfxstate[-1]): # if the current state does not already have an outgoing arc with last seen symbol
-                    delta[state][pfxstate[-1]] = [pfxstate[-1], pfxstate]
-                    
-            
-            
-            
+                
+                if pfxstate[-1] == "]": # tag handling
+                    last_seen_symbol = pfxstate
+                else:
+                    last_seen_symbol = pfxstate[-1]
+                
+                if not delta[state].get(last_seen_symbol): # if the current state does not already have an outgoing arc with last seen symbol
+                    delta[state][last_seen_symbol] = [last_seen_symbol, pfxstate]
     
+    
+    
+    
+    #TODO: prefix transitions for trandsuction       
             
-             
+            
+            
+        
 def generate_final_mappings():
     pass
 
@@ -252,13 +272,15 @@ def get_transitions(IN, OUT, contexts):
 
 def main():
     
-    d,q,s,g = get_transitions(["a"],["b"], ["acab_", "b_", "c_", "z_"])
+    d,q,s,g = get_transitions(["a"],["b"], ["[tns=pst] _"])
+   
+    
     
 
 if __name__ == "__main__":
     szfz = "poop"
     
-    main()
+    # main()
    
     
     
