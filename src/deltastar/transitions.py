@@ -110,7 +110,7 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=
         for _in, _out in zip(IN, OUT):
             
             
-            # transitions are different when generating dual contexts (i.e. start state is different)
+            # transitions are different when generating dual contexts 
             if dual:
                 left = "".join(Lcon[0])
                 
@@ -126,10 +126,9 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=
                     t.append(Tran(State(start), PH,PH, State(q0)))
                     
                 elif dual:
-                    try:
-                        output = start.replace(left,"") # for dual contexts, try to subtract the left context that has already been output
-                    except IndexError:
-                        output = start   
+                    output = start.replace(left,"") # for dual contexts, subtract the left context that has already been output
+                else:
+                    output = start 
                         
                     t.append(Tran(State(start), PH, output + PH, State(q0))) # if unknown symbol, need to output the state name along with PH symbol
 
@@ -143,12 +142,9 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=
             mapping = _out + "".join(context)
             t.append(Tran(State(start), right_context[-1], mapping, State(q0), istransduction=True)) # transduction: output out symbol + state name   
              
-             
-             
-            #! WIP   
-            try:   
-                output = start.replace(left,"") # for dual contexts, subtract the left context that has already been output
-            except IndexError:
+            if dual: # for dual contexts, subtract the left context that has already been output
+                output = start.replace(left,"") 
+            else:
                 output = start
             
             t.append(Tran(State(start), PH, output+PH, State(q0)))      
@@ -177,6 +173,8 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="λ"):
 
 def prefix_transitions(delta, Q, sigma):
     """Updates delta with prefix transitions by reference"""
+    #! future optimization: combine both the prefix creation and lookup loops
+    
     
     Q.remove(State("λ")) # remove λ state 
     sigma = list(sigma)
@@ -201,6 +199,8 @@ def prefix_transitions(delta, Q, sigma):
                 # shift prefix window to the right
                 prefixstate = prefixstate[1:]
     
+    # this loop checks each entry delta and adds prefix transitions if applicable
+    #! need to add right context prefix shit
     for state, pfx_states in possible_prefix_states.items():
         
         for pfxstate in pfx_states:

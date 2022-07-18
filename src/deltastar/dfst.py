@@ -87,7 +87,7 @@ class DFST:
         for char in s.split():  
             try: # attempt to find context transitions
                 sym = self.delta[state][char][1] 
-                output += sym + " " if sym != "λ" else "" # lambda here for right contexts i think?
+                output += sym + " " if sym != "λ" else "" # lambda here for right contexts
                 state = self.delta[state][char][0]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
@@ -96,8 +96,6 @@ class DFST:
                 state = self.delta[state][PH][0]
             
         return self.v0 + output
-    
-
     
 def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     
