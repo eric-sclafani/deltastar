@@ -41,6 +41,7 @@ class Tran:
     outsym:str
     end:State
     istransduction:bool = False 
+    context_type:bool = None
     
     def __repr__(self):
         return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})" 
@@ -80,7 +81,7 @@ def generate_left_context_transitions(IN, OUT, contexts, q0="λ"):
     t = []
     
     for context in contexts:
-        context = context[:-1] # exclude the list final hyphen
+        # exclude the list final hyphen
         
         for _in, _out in zip(IN, OUT):
             start = q0
@@ -108,46 +109,51 @@ def generate_right_context_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=
     
     for context in contexts:
         for _in, _out in zip(IN, OUT):
-            
-            
+        
             # transitions are different when generating dual contexts 
             if dual:
-                left = "".join(Lcon[0])
-                
-            end =  left if dual else ""
-            start = end if dual else q0
+                leftcon = "".join(Lcon[0])
+                context_type = "dual"
+            else:
+                context_type = "right"
+            
+            start = leftcon if dual else q0  
+            end =  leftcon if dual else ""
             right_context = (_in,) + context # input symbol is always the first contextual transition. context is a tuple, so cast _in as a tuple and concat
             
             for sym in right_context[:-1]: # rightmost symbol is treated as the input for the transduction
                 end += sym
-                t.append(Tran(State(start), sym, "λ", State(end))) # all transitions moving to the right will output the empty string ("λ")
-
+                
+                # all transitions moving to the right will output the empty string ("λ")
+                t.append(Tran(State(start), sym, "λ", State(end), context_type=context_type))
+                    
                 if start == q0: # initial state gets a PH:PH transition
                     t.append(Tran(State(start), PH,PH, State(q0)))
                     
                 elif dual:
-                    output = start.replace(left,"") # for dual contexts, subtract the left context that has already been output
+                    output = start.replace(leftcon,"") # for dual contexts, subtract the left context that has already been output
                 else:
                     output = start 
-                        
                     t.append(Tran(State(start), PH, output + PH, State(q0))) # if unknown symbol, need to output the state name along with PH symbol
 
-                #! experimental (needs testing)
-                if len(end) == 1 and not dual:  
+                # beginning of context can repeat arbitrary times
+                if len(end) == 1 and not dual: #! experimental (needs testing)
                     t.append(Tran(State(end), sym, sym, State(end)))
                     
                 start = end
                 
             # reached the end of the context
-            mapping = _out + "".join(context)
-            t.append(Tran(State(start), right_context[-1], mapping, State(q0), istransduction=True)) # transduction: output out symbol + state name   
-             
+            # transduction handling is a little different because its not part of the context
+            
             if dual: # for dual contexts, subtract the left context that has already been output
-                output = start.replace(left,"") 
+                output = start.replace(leftcon,"") 
             else:
                 output = start
-            
-            t.append(Tran(State(start), PH, output+PH, State(q0)))      
+               
+            # transduction: output out symbol + state name   
+            mapping = _out + "".join(context)
+            t.append(Tran(State(start), right_context[-1], mapping, State(q0), istransduction=True, context_type=context_type)) 
+            t.append(Tran(State(start), PH, output+PH, State(q0), context_type=context_type))      
                 
     return t
 
@@ -156,7 +162,6 @@ def generate_dual_context_transitions(IN, OUT, contexts,q0="λ"):
     t = []
     
     for context in contexts:
-        #! doesnt work :(
         hyphen = context.index("_")
         left_context = [context[:hyphen]]
         right_context = [context[hyphen+1:]]
@@ -192,6 +197,8 @@ def prefix_transitions(delta, Q, sigma):
             # this also lets us jump from one "branch" to another (i.e. <b> branch, <c> branch, etc..)
             prefixstate = state[1:]  
             
+            #! insert right/dual prefix trans handling here
+            
             for _ in range(len(prefixstate)+1):
                 # generate all possible states each state can reach by combining the prefix with all symbols in sigma
                 possible_prefix_states[State(state)].extend([State(prefixstate + sym) for sym in sigma])
@@ -199,7 +206,9 @@ def prefix_transitions(delta, Q, sigma):
                 # shift prefix window to the right
                 prefixstate = prefixstate[1:]
     
-    # this loop checks each entry delta and adds prefix transitions if applicable
+    
+    
+    # this loop checks each entry in delta and adds prefix transitions if applicable
     #! need to add right context prefix shit
     for state, pfx_states in possible_prefix_states.items():
         
@@ -252,7 +261,8 @@ def get_transitions(IN, OUT, contexts):
         trans += generate_right_context_transitions(IN, OUT, Rcons)  
     if Dualcons:
         trans += generate_dual_context_transitions(IN, OUT, Dualcons)
-        
+     
+    
     delta = trans_to_dict(trans)
     Q = list(delta.keys())
     
