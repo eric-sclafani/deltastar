@@ -41,7 +41,7 @@ class DFST:
     
     
     
-    #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~ NEEDS TO BE UPDATED ~~~~~~~~~~~~~~~~~~~~~~~~
+    #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~ BROKEN: NEEDS TO BE UPDATED ~~~~~~~~~~~~~~~~~~~~~~~~
     def to_graph(self, file_name="my_machine.png", extra_edges=True):
          
         if not file_name.endswith(".png"):
@@ -135,6 +135,28 @@ doubles = [
 # x = transducer(doubles, ["a c a b _", "c c _"])
 # x.displayparams
 
-z = transducer(doubles, ["x y z _  m n",])
+z = transducer(doubles, ["x y _ m n",])
 z.displayparams
 
+
+
+
+
+
+
+
+
+
+
+
+
+    #     for pfxstate in pfx_states:
+    #         if delta.get(pfxstate): # if the possible prefix state exists in delta
+    #             if pfxstate[-1] == "]": # tag handling
+    #                 last_seen_symbol = pfxstate
+    #             else:
+    #                 last_seen_symbol = pfxstate[-1]  
+     
+                # if the current state does not already have an outgoing arc with last seen symbol              
+    #             if not delta[state].get(last_seen_symbol): 
+    #                 delta[state][last_seen_symbol] = [last_seen_symbol, pfxstate]
