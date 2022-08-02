@@ -79,6 +79,7 @@ class DFST:
                 
         graph.write_png(file_name)
     
+    #! ~~~NEEDS TO BE UPDATED~~~
     def rewrite(self, s):
         
         output = ""
@@ -99,8 +100,10 @@ class DFST:
     
 def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     
+    
     IN = [pair[0] for pair in pairs]
     OUT = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
+    
     
     # this condition block acquires the string representations of rewrite rules for displaying
     rules = [] 
@@ -111,7 +114,7 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
                      
     else: # context free 
         for _in, _out in zip(IN,OUT):
-                rules.append(f"{_in} -> {_out} / _")
+            rules.append(f"{_in} -> {_out} / _")
     
     
     delta, Q, sigma, gamma = get_transitions(IN, OUT, contexts)
@@ -135,8 +138,8 @@ doubles = [
 # x = transducer(doubles, ["a c a b _", "c c _"])
 # x.displayparams
 
-z = transducer(doubles, ["x y _ m n",])
-z.displayparams
+# z = transducer(doubles, ["x y _ m n",])
+# z.displayparams
 
 
 
@@ -150,13 +153,4 @@ z.displayparams
 
 
 
-    #     for pfxstate in pfx_states:
-    #         if delta.get(pfxstate): # if the possible prefix state exists in delta
-    #             if pfxstate[-1] == "]": # tag handling
-    #                 last_seen_symbol = pfxstate
-    #             else:
-    #                 last_seen_symbol = pfxstate[-1]  
-     
-                # if the current state does not already have an outgoing arc with last seen symbol              
-    #             if not delta[state].get(last_seen_symbol): 
-    #                 delta[state][last_seen_symbol] = [last_seen_symbol, pfxstate]
+    
