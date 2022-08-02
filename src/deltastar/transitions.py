@@ -5,7 +5,7 @@
 # generating the appropriate transitions based off of contexts
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Imports and other instantiations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from dataclasses import dataclass
 
 PH = "⊗"
@@ -86,10 +86,8 @@ def Lcon_transitions(IN, OUT, contexts, q0="λ", dual=False):
     t = []
     
     for context in contexts:
-        
         if not dual:
-            context = context[:-1] # hard coded fix for an annoying bug
-            
+            context = context[:-1] # fixes an annoying bug w.r.t left vs. dual context transition generation
         for _in, _out in zip(IN, OUT):
             start = q0
             end = ""     
@@ -134,26 +132,21 @@ def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
                 seen_Lcon = get_lcon(start, leftcon) if dual else None
                 t.append(Edge(State(start), sym, "λ", State(end), Ctype=ctype, seen_Lcon=seen_Lcon))
                  
-                 
                 output = start 
                 if start == q0: # initial state gets a PH:PH transition
                     t.append(Edge(State(start), PH,PH, State(q0), Ctype=ctype))   
                 elif dual:
-                    output = start.replace(leftcon,"") # for dual contexts, subtract the left context that has already been output
+                    output = subtract_lcon(start, leftcon) if dual else "" # for dual contexts, subtract the left context that has already been output
                 
-                     
                 t.append(Edge(State(start), PH, output + PH, State(q0), Ctype=ctype)) # if unknown symbol, need to output the state name along with PH symbol
                 start = end
                 
             # reached the end of the context
             # transduction handling is a little different because its not part of the context
             
-            
-#! ~~~~~~~~~~~~~~~~~~~ USING STR.REPLACE HERE MAY NOT WORK CORRECTLY IN SOME INSTANCES 
-            if dual: # for dual contexts, subtract the left context that has already been output
-                output = start.replace(leftcon,"") 
+            # for dual contexts, subtract the left context that has already been output
+            output = subtract_lcon(start, leftcon) if dual else "" 
           
-               
             # transduction: output out symbol + state name   
             mapping = _out + "".join(context)
             t.append(Edge(State(start), right_context[-1], mapping, State(q0), Ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
@@ -202,47 +195,44 @@ def prefix_transitions(context_trans, Q, sigma):
             if ppt.end in Q: # disregard states that dont exist
                 
                 # find all already existing transitions that have ppt.start as a start state  
-                matched_trans = [ct for ct in context_trans if ct.start == ppt.start]
+                matched_trans = [ct for ct in context_trans if ct.start == ppt.start and ct.insym != PH]
                 
+                # get the last seen symbol to be used in the added prefix transition
                 last_seen_symbol = str(ppt.end) if ppt.end[-1] == "]" else ppt.end[-1] # tag handling         
                 
                 # for each matched transition, find out if it already has a transition with the last seen symbol,
-                symbol_seen = list(filter(lambda x: x.insym == last_seen_symbol, matched_trans))
+                symbol_seen = []
+                for mt in matched_trans:
+                    if mt.insym == last_seen_symbol and not mt.is_transduction:
+                        symbol_seen.append(mt)
+                      
+                find_mapping = [t for t in matched_trans if t.is_transduction]
                 
                 # modify the last seen symbol depending on the matched transition's context type and append to transitions_to_add
                 if not symbol_seen:
-                    ctype = matched_trans[0].Ctype
-                    lcon = matched_trans[0].seen_Lcon
+                    match = matched_trans[0]
+                    ctype = match.Ctype
+                    lcon = match.seen_Lcon
                     output = last_seen_symbol
                     
                     if ctype == "dual":
                         output = subtract_lcon(ppt.start, lcon) + last_seen_symbol
                     elif ctype == "right":
                         output = ppt.start + last_seen_symbol
-
+                    
+                    # need to replace the placeholder transduction mapping with oen that goes to a prefix state
+                    if match in find_mapping and match.insym == last_seen_symbol:
+                        output = match.outsym
+                    
                     transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end))
                 
                 # print(f"{last_seen_symbol = }")
                 # print(f"Proposed ppt: {ppt}")
                 # print(f"Matched trans: {matched_trans}\n")
                 
-                
+    # for t in transitions_to_add:
+    #     print(t)          
              
-                
-        
-            
-        
-   
-        
-    
-    
-                
-         
-            
-    #TODO: prefix transitions for trandsuction       
-            
-                
-
     return transitions_to_add
   
       
@@ -256,8 +246,8 @@ def trans_to_dict(context_trans):
         start, insym = tran.start, tran.insym
         end, outsym = tran.end, tran.outsym 
         
-        if not transdict[start][insym]:
-            transdict[start][insym] = [outsym, end]
+        transdict[start][insym] = [outsym, end]
+        
             
     return transdict   
 
