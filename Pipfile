@@ -7,6 +7,7 @@ name = "pypi"
 pydot = "*"
 dataclasses = "*"
 tabulate = "*"
+pytest = "*"
 
 [dev-packages]
 

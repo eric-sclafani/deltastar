@@ -18,7 +18,6 @@ subtract_lcon = lambda s1, s2: "".join([i for i in s1 if i not in s2])
 class State:
     
     label:str
-    output:str = None
     initial:bool = False
     
     def __len__(self):
@@ -42,7 +41,7 @@ class Edge:
     insym:str
     outsym:str
     end:State
-    Ctype:str = None
+    ctype:str = None
     is_transduction:bool = False 
     seen_Lcon:str = ""
     
@@ -77,8 +76,8 @@ def cf_transitions(IN, OUT,q0="λ"):
     # all CF transitions are self loops on initial state
     t = []
     for _in, _out in zip (IN, OUT): 
-        t.append(Edge(State(q0),_in, _out, State(q0), Ctype="cf"))
-        t.append(Edge(State(q0),PH, PH, State(q0), Ctype="cf"))
+        t.append(Edge(State(q0),_in, _out, State(q0), ctype="cf"))
+        t.append(Edge(State(q0),PH, PH, State(q0), ctype="cf"))
     return t
     
 def Lcon_transitions(IN, OUT, contexts, q0="λ", dual=False):
@@ -95,13 +94,13 @@ def Lcon_transitions(IN, OUT, contexts, q0="λ", dual=False):
             
             for sym in context:                        
                 end += sym # build the next state symbol by symbol 
-                t.append(Edge(State(start), sym, sym, State(end), Ctype=ctype))
-                t.append(Edge(State(start), PH, PH, State(q0), Ctype=ctype))
+                t.append(Edge(State(start), sym, sym, State(end), ctype=ctype))
+                t.append(Edge(State(start), PH, PH, State(q0), ctype=ctype))
                  
                 start = end # update start state
             
-            t.append(Edge(State(start), _in, _out, State(q0), Ctype=ctype, is_transduction=True)) 
-            t.append(Edge(State(start), PH, PH, State(q0),  Ctype=ctype))   
+            t.append(Edge(State(start), _in, _out, State(q0), ctype=ctype, is_transduction=True)) 
+            t.append(Edge(State(start), PH, PH, State(q0),  ctype=ctype))   
     return t
 
 
@@ -130,15 +129,15 @@ def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
                 
                 # all transitions moving to the right will output the empty string ("λ")
                 seen_Lcon = get_lcon(start, leftcon) if dual else None
-                t.append(Edge(State(start), sym, "λ", State(end), Ctype=ctype, seen_Lcon=seen_Lcon))
+                t.append(Edge(State(start), sym, "λ", State(end), ctype=ctype, seen_Lcon=seen_Lcon))
                  
                 output = start 
                 if start == q0: # initial state gets a PH:PH transition
-                    t.append(Edge(State(start), PH,PH, State(q0), Ctype=ctype))   
+                    t.append(Edge(State(start), PH,PH, State(q0), ctype=ctype))   
                 elif dual:
                     output = subtract_lcon(start, leftcon) if dual else "" # for dual contexts, subtract the left context that has already been output
                 
-                t.append(Edge(State(start), PH, output + PH, State(q0), Ctype=ctype)) # if unknown symbol, need to output the state name along with PH symbol
+                t.append(Edge(State(start), PH, output + PH, State(q0), ctype=ctype)) # if unknown symbol, need to output the state name along with PH symbol
                 start = end
                 
             # reached the end of the context
@@ -149,8 +148,8 @@ def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
           
             # transduction: output out symbol + state name   
             mapping = _out + "".join(context)
-            t.append(Edge(State(start), right_context[-1], mapping, State(q0), Ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
-            t.append(Edge(State(start), PH, output+PH, State(q0), Ctype=ctype))      
+            t.append(Edge(State(start), right_context[-1], mapping, State(q0), ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
+            t.append(Edge(State(start), PH, output+PH, State(q0), ctype=ctype))      
                 
     return t
 
@@ -211,7 +210,7 @@ def prefix_transitions(context_trans, Q, sigma):
                 # modify the last seen symbol depending on the matched transition's context type and append to transitions_to_add
                 if not symbol_seen:
                     match = matched_trans[0]
-                    ctype = match.Ctype
+                    ctype = match.ctype
                     lcon = match.seen_Lcon
                     output = last_seen_symbol
                     
@@ -235,9 +234,6 @@ def prefix_transitions(context_trans, Q, sigma):
              
     return transitions_to_add
   
-      
-      
-
 def trans_to_dict(context_trans):
     
     transdict = defaultdict(lambda: defaultdict(dict))
@@ -245,15 +241,8 @@ def trans_to_dict(context_trans):
     for tran in context_trans:
         start, insym = tran.start, tran.insym
         end, outsym = tran.end, tran.outsym 
-        
-        transdict[start][insym] = [outsym, end]
-        
-            
+        transdict[start][insym] = [outsym, end]  
     return transdict   
-
-
-
-  
 
 def get_Q_sigma_gamma(context_trans):
     
@@ -266,15 +255,21 @@ def get_Q_sigma_gamma(context_trans):
     gamma = set(t.outsym for t in context_trans)  
     return Q, sigma, gamma 
 
-
-
-
+         
+def generate_final_mappings(trans):
+    
+    d = {}
+    for t in trans:
+        if t.start not in d:
+            if t.ctype == "left":
+                d[t.start] = ""
             
-def generate_final_mappings():
-    pass
+            elif t.ctype == "right":
+                d[t.start] = t.start.label
 
-
-
+            elif t.ctype == "dual":
+                d[t.start] = subtract_lcon(t.start.label, t.seen_Lcon)
+    return d
 
 
 def get_transitions(IN, OUT, contexts):
@@ -292,16 +287,12 @@ def get_transitions(IN, OUT, contexts):
         context_trans += Dcon_transitions(IN, OUT, Dualcons)
         
     Q, sigma, gamma = get_Q_sigma_gamma(context_trans)
+    finals = generate_final_mappings(context_trans)
     
-  
     all_trans = context_trans + prefix_transitions(context_trans, Q, sigma) 
     delta = trans_to_dict(all_trans)
     
-    
-    #! perform final mappings and return them to dfst.py
-    
-   
-    return delta, Q, sigma, gamma
+    return delta, Q, sigma, gamma, finals
 
 
 

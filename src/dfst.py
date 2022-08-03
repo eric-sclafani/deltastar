@@ -16,6 +16,7 @@ class DFST:
     Q:List[str]
     sigma:set
     gamma:set
+    finals: dict
     rules:List[str]
     v0:str = ""
     q0:str = "<λ>"
@@ -28,7 +29,7 @@ class DFST:
         print(*self.rules, sep="\n")
         
         print("~"*28,"\n")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nF: Not Implemented Yet")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q)}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nFinals: {self.finals}")
         
         print(f"Delta:")
         
@@ -117,28 +118,23 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
             rules.append(f"{_in} -> {_out} / _")
     
     
-    delta, Q, sigma, gamma = get_transitions(IN, OUT, contexts)
+    delta, Q, sigma, gamma, finals = get_transitions(IN, OUT, contexts)
     
-    return DFST(delta, Q, sigma, gamma, rules, v0)
+    return DFST(delta, Q, sigma, gamma, finals, rules, v0)
         
-
-    
-
-    
-
 
     
 doubles = [
     ("a", "b"),
 ]    
 
-t = transducer(doubles, ["[tns=pst] _ [mod=imp]"])
-t.displayparams
+# t = transducer(doubles, ["[tns=pst] _ [mod=imp]"])
+# t.displayparams
 
 # x = transducer(doubles, ["a c a b _", "c c _"])
 # x.displayparams
 
-# z = transducer(doubles, ["n _", "x y _ m n","a _"])
+# z = transducer(doubles, ["x y _ m n","f _"])
 # z.displayparams
 
 
