@@ -69,6 +69,7 @@ def parse_contexts(contexts):
             Rcons.append(con)
         else:
             Dualcons.append(con)
+            
     return Lcons, Rcons, Dualcons
 
 def cf_transitions(IN, OUT,q0="λ"):
@@ -136,18 +137,18 @@ def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
                     t.append(Edge(State(start), PH,PH, State(q0), ctype=ctype))   
                 elif dual:
                     output = subtract_lcon(start, leftcon) if dual else "" # for dual contexts, subtract the left context that has already been output
-                
-                t.append(Edge(State(start), PH, output + PH, State(q0), ctype=ctype)) # if unknown symbol, need to output the state name along with PH symbol
+                    t.append(Edge(State(start), PH, output + PH, State(q0), ctype=ctype)) # if unknown symbol, need to output the state name along with PH symbol
                 start = end
                 
             # reached the end of the context
             # transduction handling is a little different because its not part of the context
             
-            # for dual contexts, subtract the left context that has already been output
-            output = subtract_lcon(start, leftcon) if dual else "" 
-          
+            # for dual contexts PH transitions, subtract the left context that has already been output
+            output = subtract_lcon(start, leftcon) if dual else start 
+        
             # transduction: output out symbol + state name   
-            mapping = _out + "".join(context)
+            mapping = _out + "".join(context) 
+        
             t.append(Edge(State(start), right_context[-1], mapping, State(q0), ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
             t.append(Edge(State(start), PH, output+PH, State(q0), ctype=ctype))      
                 
@@ -201,7 +202,7 @@ def prefix_transitions(context_trans, Q, sigma):
                 
                 # for each matched transition, find out if it already has a transition with the last seen symbol,
                 symbol_seen = []
-                for mt in matched_trans:
+                for mt in matched_trans: # + transitions_to_add
                     if mt.insym == last_seen_symbol and not mt.is_transduction:
                         symbol_seen.append(mt)
                       
@@ -214,23 +215,34 @@ def prefix_transitions(context_trans, Q, sigma):
                     lcon = match.seen_Lcon
                     output = last_seen_symbol
                     
+                    # need to check if transitions_to_add already has a new transition with last_seen_symbol
+                    # either need to re-add the conditional to trans_to_dict, or work some magic here
+                    # if match.insym in [i.insym for i in transitions_to_add]:
+                    #     continue
+                    
+                    
                     if ctype == "dual":
                         output = subtract_lcon(ppt.start, lcon) + last_seen_symbol
+                        
                     elif ctype == "right":
-                        output = ppt.start + last_seen_symbol
+                        
+                        #! need to add additional logic here
+                        output = ppt.start.label + last_seen_symbol
                     
-                    # need to replace the placeholder transduction mapping with oen that goes to a prefix state
+                    # need to replace the placeholder transduction mapping with one that goes to a prefix state (if applicable)
                     if match in find_mapping and match.insym == last_seen_symbol:
                         output = match.outsym
                     
+                   
+                    
                     transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end))
                 
-                # print(f"{last_seen_symbol = }")
-                # print(f"Proposed ppt: {ppt}")
-                # print(f"Matched trans: {matched_trans}\n")
-                
-    # for t in transitions_to_add:
-    #     print(t)          
+                print(f"{last_seen_symbol = }")
+                print(f"Proposed ppt: {ppt}")
+                print(f"Matched trans: {matched_trans}\n")
+    
+    print("Transitions being added:", *transitions_to_add, sep="\n")    
+          
              
     return transitions_to_add
   
@@ -241,6 +253,8 @@ def trans_to_dict(context_trans):
     for tran in context_trans:
         start, insym = tran.start, tran.insym
         end, outsym = tran.end, tran.outsym 
+        
+        
         transdict[start][insym] = [outsym, end]  
     return transdict   
 
@@ -260,7 +274,7 @@ def generate_final_mappings(trans):
     
     d = {}
     for t in trans:
-        if t.start not in d:
+        if t.start not in d and t.start.label != "λ":
             if t.ctype == "left":
                 d[t.start] = ""
             
@@ -299,7 +313,7 @@ def get_transitions(IN, OUT, contexts):
 
 def main():
     
-    d,q,s,g = get_transitions(["a"],["b"], ["x y _ z w"])
+    d,q,s,g,h= get_transitions(["a"],["b"], ["a _ "])
  
     
     
