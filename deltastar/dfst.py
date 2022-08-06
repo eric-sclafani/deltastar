@@ -131,13 +131,13 @@ doubles = [
 # t = transducer(doubles, ["[tns=pst] _ [mod=imp]"])
 # t.displayparams
 
-x = transducer(doubles, ["a c a b _", "c c _"])
-x.displayparams
+# x = transducer(doubles, ["a c a b _", "c c _"])
+# x.displayparams
 
 # z = transducer(doubles, ["x y _ m n",])
 # z.displayparams
 
-# c = transducer(doubles, ["_ a b c"])
+# c = transducer(doubles, ["_ a a a"])
 # c.displayparams
 
 

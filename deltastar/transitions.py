@@ -214,34 +214,29 @@ def prefix_transitions(context_trans, Q, sigma):
                     ctype = match.ctype
                     lcon = match.seen_Lcon
                     output = last_seen_symbol
-                    
-                    # need to check if transitions_to_add already has a new transition with last_seen_symbol
-                    # either need to re-add the conditional to trans_to_dict, or work some magic here
-                    # if match.insym in [i.insym for i in transitions_to_add]:
-                    #     continue
-                    
-                    
+                    is_transduction = False
+                
                     if ctype == "dual":
                         output = subtract_lcon(ppt.start, lcon) + last_seen_symbol
                         
                     elif ctype == "right":
                         
-                        #! need to add additional logic here
-                        output = ppt.start.label + last_seen_symbol
+                        # self loops should only get last_seen_symbol. Otherwise, concatenate state name with last_seen_symbol
+                        if ppt.start.label != ppt.end.label:
+                            output = ppt.start.label + last_seen_symbol
                     
                     # need to replace the placeholder transduction mapping with one that goes to a prefix state (if applicable)
                     if match in find_mapping and match.insym == last_seen_symbol:
                         output = match.outsym
+                        is_transduction = True # setting this lets the already existing PH transduction get overwritten in trans_to_dict()
                     
-                   
-                    
-                    transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end))
+                    transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end, is_transduction=is_transduction))
                 
-                print(f"{last_seen_symbol = }")
-                print(f"Proposed ppt: {ppt}")
-                print(f"Matched trans: {matched_trans}\n")
+    #             print(f"{last_seen_symbol = }")
+    #             print(f"Proposed ppt: {ppt}")
+    #             print(f"Matched trans: {matched_trans}\n")
     
-    print("Transitions being added:", *transitions_to_add, sep="\n")    
+    # print("Transitions being added:", *transitions_to_add, sep="\n")    
           
              
     return transitions_to_add
@@ -249,13 +244,12 @@ def prefix_transitions(context_trans, Q, sigma):
 def trans_to_dict(context_trans):
     
     transdict = defaultdict(lambda: defaultdict(dict))
-    
     for tran in context_trans:
         start, insym = tran.start, tran.insym
         end, outsym = tran.end, tran.outsym 
         
-        
-        transdict[start][insym] = [outsym, end]  
+        if not transdict[start][insym] or tran.is_transduction: # allows the PH transduction to be overwritten by the prefix one
+            transdict[start][insym] = [outsym, end]  
     return transdict   
 
 def get_Q_sigma_gamma(context_trans):
