@@ -8,7 +8,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 
-PH = "⊗"
+PH = "?" #"⊗"
 get_lcon = lambda s1, s2: "".join([i for i in s1 if i in s2])
 subtract_lcon = lambda s1, s2: "".join([i for i in s1 if i not in s2])
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -48,6 +48,9 @@ class Edge:
     def __repr__(self):
         return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"   
     
+class ContextError(Exception):
+    pass
+    
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
 def parse_contexts(contexts):
@@ -56,9 +59,9 @@ def parse_contexts(contexts):
     for con in contexts:
         
         if not isinstance(con, str):
-            raise TypeError(f"{con} must be of type 'str'")
+            raise ContextError(f"{con} must be of type 'str'")
         elif "_" not in con:
-            raise ValueError(f"{con} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
+            raise ContextError(f"{con} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
     
         con = tuple(con.split())
         
@@ -72,23 +75,24 @@ def parse_contexts(contexts):
             
     return Lcons, Rcons, Dualcons
 
-def cf_transitions(IN, OUT,q0="λ"):
+def cf_transitions(insyms, outsyms,q0="λ"):
     
     # all CF transitions are self loops on initial state
     t = []
-    for _in, _out in zip (IN, OUT): 
+    for _in, _out in zip (insyms, outsyms): 
         t.append(Edge(State(q0),_in, _out, State(q0), ctype="cf"))
-        t.append(Edge(State(q0),PH, PH, State(q0), ctype="cf"))
+        
+    t.append(Edge(State(q0),PH, PH, State(q0), ctype="cf"))
     return t
     
-def Lcon_transitions(IN, OUT, contexts, q0="λ", dual=False):
+def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
     
     t = []
     
     for context in contexts:
         if not dual:
             context = context[:-1] # fixes an annoying bug w.r.t left vs. dual context transition generation
-        for _in, _out in zip(IN, OUT):
+        for _in, _out in zip(insyms, outsyms):
             start = q0
             end = ""     
             ctype = "left"        
@@ -105,12 +109,12 @@ def Lcon_transitions(IN, OUT, contexts, q0="λ", dual=False):
     return t
 
 
-def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
+def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
    
     t = []
     
     for context in contexts:
-        for _in, _out in zip(IN, OUT):
+        for _in, _out in zip(insyms, outsyms):
         
             # transition generation depend on if its strictly right or dual context 
             if dual:
@@ -134,7 +138,8 @@ def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
                  
                 output = start 
                 if start == q0: # initial state gets a PH:PH transition
-                    t.append(Edge(State(start), PH,PH, State(q0), ctype=ctype))   
+                    t.append(Edge(State(start), PH,PH, State(q0), ctype=ctype)) 
+                      
                 elif dual:
                     output = subtract_lcon(start, leftcon) if dual else "" # for dual contexts, subtract the left context that has already been output
                     t.append(Edge(State(start), PH, output + PH, State(q0), ctype=ctype)) # if unknown symbol, need to output the state name along with PH symbol
@@ -154,7 +159,7 @@ def Rcon_transitions(IN, OUT, contexts, q0="λ", Lcon=[],dual=False):
                 
     return t
 
-def Dcon_transitions(IN, OUT, contexts,q0="λ"):
+def Dcon_transitions(insyms, outsyms, contexts,q0="λ"):
 
     t = []
  
@@ -163,15 +168,16 @@ def Dcon_transitions(IN, OUT, contexts,q0="λ"):
         left_context = [context[:hyphen]]
         right_context = [context[hyphen+1:]]
         
-        left_trans = [con for con in Lcon_transitions(IN, OUT, left_context, q0, dual=True) if not con.is_transduction] # filter out transduction transitions
-        right_trans = Rcon_transitions(IN, OUT, right_context, Lcon=left_context, dual=True)
+        left_trans = [con for con in Lcon_transitions(insyms, outsyms, left_context, q0, dual=True) if not con.is_transduction] # filter out transduction transitions
+        right_trans = Rcon_transitions(insyms, outsyms, right_context, Lcon=left_context, dual=True)
         dual_trans = left_trans + right_trans
        
         t.extend(dual_trans)  
     return t
 
-def prefix_transitions(context_trans, Q, sigma):
+def prefix_transitions(context_trans):
     
+    Q, sigma, _ = get_Q_sigma_gamma(context_trans)
     Q.remove(State("λ")) # remove λ state 
     sigma = list(sigma)
     sigma.remove(PH) # remove PH symbol from sigma since it doesnt have prefix transitions
@@ -231,7 +237,8 @@ def prefix_transitions(context_trans, Q, sigma):
                         is_transduction = True # setting this lets the already existing PH transduction get overwritten in trans_to_dict()
                     
                     transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end, is_transduction=is_transduction))
-                
+    
+    # debugging code
     #             print(f"{last_seen_symbol = }")
     #             print(f"Proposed ppt: {ppt}")
     #             print(f"Matched trans: {matched_trans}\n")
@@ -239,18 +246,7 @@ def prefix_transitions(context_trans, Q, sigma):
     # print("Transitions being added:", *transitions_to_add, sep="\n")    
           
              
-    return transitions_to_add
-  
-def trans_to_dict(context_trans):
-    
-    transdict = defaultdict(lambda: defaultdict(dict))
-    for tran in context_trans:
-        start, insym = tran.start, tran.insym
-        end, outsym = tran.end, tran.outsym 
-        
-        if not transdict[start][insym] or tran.is_transduction: # allows the PH transduction to be overwritten by the prefix one
-            transdict[start][insym] = [outsym, end]  
-    return transdict   
+    return transitions_to_add 
 
 def get_Q_sigma_gamma(context_trans):
     
@@ -280,44 +276,23 @@ def generate_final_mappings(trans):
     return d
 
 
-def get_transitions(IN, OUT, contexts):
+def get_transitions(insyms, outsyms, contexts=[]):
     
     context_trans = [] # list of all context transitions 
     Lcons, Rcons, Dualcons= parse_contexts(contexts)
     
     if not contexts:
-        context_trans += cf_transitions(IN, OUT)
+        context_trans += cf_transitions(insyms, outsyms)
     if Lcons:
-        context_trans += Lcon_transitions(IN, OUT, Lcons)  
+        context_trans += Lcon_transitions(insyms, outsyms, Lcons)  
     if Rcons:
-        context_trans += Rcon_transitions(IN, OUT, Rcons)  
+        context_trans += Rcon_transitions(insyms, outsyms, Rcons)  
     if Dualcons:
-        context_trans += Dcon_transitions(IN, OUT, Dualcons)
+        context_trans += Dcon_transitions(insyms, outsyms, Dualcons)
         
-    Q, sigma, gamma = get_Q_sigma_gamma(context_trans)
-    finals = generate_final_mappings(context_trans)
+    all_trans = context_trans + prefix_transitions(context_trans)
     
-    all_trans = context_trans + prefix_transitions(context_trans, Q, sigma) 
-    delta = trans_to_dict(all_trans)
-    
-    return delta, Q, sigma, gamma, finals
-
-
-
-
-def main():
-    
-    d,q,s,g,h= get_transitions(["a"],["b"], ["a _ "])
- 
-    
-    
-    
-
-if __name__ == "__main__":
-    szfz = "poop"
-    
-    # main()
-   
+    return all_trans
     
     
 
