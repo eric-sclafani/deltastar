@@ -9,15 +9,18 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 
 # Currently working on:
 
-- Add more test cases (especially for multi-character symbols)
+- tests
 - Insertion, deletion rules
 - BOW/EOW context handling
+
 
 # Planned additions:
 - Better (less confusing) naming schemes
 - When overhauling graphs: default it to hide prefix / extra transitions
 - Lock user into using [XXX] tags (may be changed in the future to allow any tags)
 - Make custom exceptions
+- More tests
+- Context / mapping conflict detector
 
 # Planned optimizations:
 - Simplify context transition code. There's a lot of repeated and ugly code, so It needs to be organized better.
@@ -29,9 +32,10 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - weighted FSTs
 - non-deterministic FSTs
 - two-way transducers
+- get rid of dict, write a filter function for transitions and just use a list of transitions? 
 
 # Known issues:
-- I'm not sure about this, but since multiple mappings / contexts can be specified at once, depending on the types of rules input by the user, some conflicts may happen. For example, inputting overlapping contexts may lead to some issues. The multiple mapping stuff is mostly just a temporary substitution for not having FST union or composition. When (or if) those get added, multiple mappings might get yeeted. Not sure ¯\\_(ツ)_/¯
+- When specifying mulitple contexts and/or transductions, it is possible to input contexts and transductions that conflict with each other. I plan to implement a sanity check that tries to locate these issues. 
 
 
 

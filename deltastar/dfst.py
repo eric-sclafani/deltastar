@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
+from transitions import State
 from transitions import PH
 from typing import List
 from tabulate import tabulate 
@@ -20,17 +21,18 @@ class DFST:
     finals: dict
     rules:List[str]
     v0:str = ""
-    q0:str = "<λ>"
+    q0:str = State("λ")
     
     @property                    
     def displayparams(self):
-        """ Prints rewrite rule, sigma, gamma, Q, q0, v0, F, delta""" 
+        """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
+        finals = {f"<{k}>":v for k,v in self.finals.items()}
         
         print(f"{'~'*7}Rewrite rules:{'~'*7}")
         print(*self.rules, sep="\n")
         
         print("~"*28,"\n")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nFinals: {self.finals}")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
         
         print(f"Delta:")
         
@@ -41,10 +43,10 @@ class DFST:
         
         print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"], tablefmt="fancy_outline"))
     
-    
+
     
     #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~ BROKEN: NEEDS TO BE UPDATED ~~~~~~~~~~~~~~~~~~~~~~~~
-    def to_graph(self, file_name="my_machine.png", extra_edges=True):
+    def to_graph(self, file_name="my_machine.png", disable_PH=True):
          
         if not file_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
@@ -56,7 +58,7 @@ class DFST:
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
                 
-                if not extra_edges and in_sym == PH:
+                if disable_PH and in_sym == PH:
                     continue
                 
                 prev_state = state
@@ -81,28 +83,27 @@ class DFST:
                 
         graph.write_png(file_name)
     
-    #! ~~~NEEDS TO BE UPDATED~~~
     # users need to input strings space delimited. This accounts for symbols having multiple characters (i.e. "[tns=past] v e r b [mod=imp] ")
     def rewrite(self, s):
         
         output = ""
-        state = self.q0
+        state = self.q0 # begin at the initial state
         
         for char in s.split():  
-            try: # attempt to find context transitions
-                sym = self.delta[state][char][1] 
-                output += sym + " " if sym != "λ" else "" # lambda here for right contexts
-                state = self.delta[state][char][0]
+            try: # attempt to find transitions
+                outsym = self.delta[state][char][0] 
+                output += outsym if outsym != "λ" else "" # lambda here for right contexts
+                state = self.delta[state][char][1]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
-                sym = self.delta[state][PH][1]
-                output += sym.replace(PH, char)
-                state = self.delta[state][PH][0]
-            
-        return self.v0 + output
+                outsym = self.delta[state][PH][0]
+                output += outsym.replace(PH, char) 
+                state = self.delta[state][PH][1]
+                
+         
+        return self.v0 + tr.intersperse(output) + self.finals[state]
     
 def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
-    
     
     insyms = [pair[0] for pair in pairs]
     outsyms = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
@@ -119,50 +120,24 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
         for _in, _out in zip(insyms, outsyms):
             rules.append(f"{_in} -> {_out} / _")
     
-    
     transitions = tr.get_transitions(insyms, outsyms, contexts)
-    Q, sigma, gamma = tr.get_Q_sigma_gamma(transitions)
-    finals = tr.generate_final_mappings(transitions)
     
-    # stores transitions as a dict
-    delta = defaultdict(lambda: defaultdict(dict))
-    for tran in transitions:
-        start, insym = tran.start, tran.insym
-        end, outsym = tran.end, tran.outsym 
-        
-        if not delta[start][insym] or tran.is_transduction: # allows the PH transduction to be overwritten by the prefix one
-            delta[start][insym] = [outsym, end] 
+    delta = tr.make_delta(transitions)
+    Q, sigma, gamma = tr.get_Q_sigma_gamma(transitions)
+    finals = tr.get_final_mappings(transitions)
+      
     return DFST(delta, Q, sigma, gamma, finals, rules, v0)
         
 
     
-doubles = [
-    ("a", "b"),
-    
-]    
-
-# t = transducer(doubles, ["[tns=pst] _ [mod=imp]"])
-# t.displayparams
-
-x = transducer(doubles, ["a c a b _"])
-x.displayparams
-
-# z = transducer(doubles, ["x y _ m n",])
-# z.displayparams
-
-# c = transducer(doubles, ["_ a a a"])
-# c.displayparams
+# test = transducer([("g","G")], ["_ g g f f", "_ z z"])
+# test.displayparams
 
 
 
-
-
-
-
-
-
-
-
-
+test = transducer([("a","b"), ("x", "y")], ["_ b b b"])
+test.displayparams
+f = test.rewrite("a b b")
+print(f)
 
     
