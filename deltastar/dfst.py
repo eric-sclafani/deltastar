@@ -4,12 +4,11 @@ from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
-from transitions import State
-from transitions import PH
+from transitions import PH, cfx
 from typing import List
 from tabulate import tabulate 
 
-cfx = lambda string: f"<{string}>"
+
 
 @dataclass
 class DFST:
@@ -21,7 +20,7 @@ class DFST:
     finals: dict
     rules:List[str]
     v0:str = ""
-    q0:str = State("λ")
+    q0:str = tr.State("λ")
     
     @property                    
     def displayparams(self):
@@ -42,8 +41,6 @@ class DFST:
                transitions.append([cfx(state), s, t[0], cfx(t[1])])
         
         print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"], tablefmt="fancy_outline"))
-    
-
     
     #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~ BROKEN: NEEDS TO BE UPDATED ~~~~~~~~~~~~~~~~~~~~~~~~
     def to_graph(self, file_name="my_machine.png", disable_PH=True):
@@ -84,7 +81,7 @@ class DFST:
         graph.write_png(file_name)
     
     # users need to input strings space delimited. This accounts for symbols having multiple characters (i.e. "[tns=past] v e r b [mod=imp] ")
-    def rewrite(self, s):
+    def rewrite(self, s, to_list=False):
         
         output = ""
         state = self.q0 # begin at the initial state
@@ -92,16 +89,22 @@ class DFST:
         for char in s.split():  
             try: # attempt to find transitions
                 outsym = self.delta[state][char][0] 
-                output += outsym if outsym != "λ" else "" # lambda here for right contexts
+                output += outsym # lambda here for right contexts
                 state = self.delta[state][char][1]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
                 outsym = self.delta[state][PH][0]
                 output += outsym.replace(PH, char) 
                 state = self.delta[state][PH][1]
-                
-         
-        return self.v0 + tr.intersperse(output) + self.finals[state]
+        
+        #! change this formatting 
+        output = (f"{self.v0} {tr.intersperse(output)} {self.finals[state]}".replace("λ", "")).split()
+        
+        if to_list: # easier to view changed string when its in a list. Essentially a debugging option.
+            return output
+        
+        
+        return "".join(output)
     
 def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     
@@ -127,17 +130,21 @@ def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
     finals = tr.get_final_mappings(transitions)
       
     return DFST(delta, Q, sigma, gamma, finals, rules, v0)
-        
-
     
-# test = transducer([("g","G")], ["_ g g f f", "_ z z"])
+
+
+# test = transducer([("a", "A"), ("h", "H")], ["x y z _ z y x"])
 # test.displayparams
+# print(test.rewrite("x y z h z y x", to_list=True))
 
-
-
-test = transducer([("a","b"), ("x", "y")], ["_ b b b"])
+test = transducer([("a", "X"), ("b", "Y")], ["a c _ c b"])
 test.displayparams
-f = test.rewrite("a b b")
-print(f)
+print(test.rewrite("a c a c b", to_list=True))
+
+# test = transducer([("c", "C")], ["c _ d a c"])
+# test.displayparams
+# print(test.rewrite("x y z h z y x", to_list=True))
+
+
 
     

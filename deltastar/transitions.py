@@ -8,10 +8,26 @@
 from collections import defaultdict
 from dataclasses import dataclass
 
-PH = "?" #"⊗"
-get_lcon = lambda s1, s2: "".join([i for i in s1 if i in s2])
-subtract_lcon = lambda s1, s2: "".join([i for i in s1 if i not in s2])
-intersperse = lambda s: " ".join([i for i in s])
+PH = "?" 
+cfx = lambda string: f"<{string}>"
+get_lcon = lambda s1, s2: "".join([i for i in s1 if i in s2]) # string intersection w.r.t s1
+intersperse = lambda s: " ".join([i for i in s])    
+
+# def string_intersection(s1, s2)
+
+def string_complement(s1, s2, pad=""):
+    """Performs the relative complement operation on two strings. """
+    
+    output = ""
+    if pad == "right":
+        s2 = s2.rjust(len(s1), " ")
+    elif pad == "left":
+        s2 = s2.ljust(len(s1), " ")
+        
+    for i, s in enumerate(s1):
+        if s != s2[i]:
+            output += s
+    return output
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,7 +58,7 @@ class Edge:
     insym:str
     outsym:str
     end:State
-    ctype:str = None
+    ctype:str = None # context type (left, right, or dual)
     is_transduction:bool = False 
     seen_Lcon:str = ""
     
@@ -92,14 +108,15 @@ def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
     t = []
     
     for context in contexts:
-        if not dual:
-            context = context[:-1] # fixes an annoying bug w.r.t left vs. dual context transition generation
+        
+        # fixes an annoying bug w.r.t left vs. dual context transition generation
+        con = context[:-1] if not dual else context
         for _in, _out in zip(insyms, outsyms):
             start = q0
             end = ""     
             ctype = "left"        
             
-            for sym in context:                        
+            for sym in con:                        
                 end += sym # build the next state symbol by symbol 
                 t.append(Edge(State(start), sym, sym, State(end), ctype=ctype))
                 t.append(Edge(State(start), PH, PH, State(q0), ctype=ctype))
@@ -110,32 +127,33 @@ def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
             t.append(Edge(State(start), PH, PH, State(q0),  ctype=ctype))   
     return t
 
-
 def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
    
     t = []
-    
     for context in contexts:
         for _in, _out in zip(insyms, outsyms):
-        
+            
             # transition generation depend on if its strictly right or dual context 
             if dual:
                 leftcon = "".join(Lcon[0]) # join the left context to subtract it later in this func
+                con = context
                 ctype = "dual"
                 start = leftcon
                 end = leftcon
             else:
-                context = context[1:]
+                con = context[1:]
                 ctype = "right"
                 start = q0
                 end = ""
-            
-            right_context = (_in,) + context # input symbol is always the first contextual transition. context is a tuple, so cast _in as a tuple and concat
+                
+            right_context = (_in,) + con # input symbol is always the first contextual transition. context is a tuple, so cast _in as a tuple and concat
             for sym in right_context[:-1]: # rightmost symbol is treated as the input for the transduction
                 end += sym
                 
-                # all transitions moving to the right will output the empty string ("λ")
-                seen_Lcon = get_lcon(start, leftcon) if dual else None
+                # get the left context that was already pushed to the output tape
+                seen_Lcon = leftcon if dual else None
+                
+                 # all transitions moving to the right will output the empty string ("λ")
                 t.append(Edge(State(start), sym, "λ", State(end), ctype=ctype, seen_Lcon=seen_Lcon))
                  
                 output = start 
@@ -144,7 +162,7 @@ def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
                       
                 # if unknown symbol, need to output the state name along with PH symbol
                 # for dual contexts, subtract the left context that has already been output
-                output = subtract_lcon(start, leftcon) if dual else start if start != "λ" else ""
+                output = string_complement(start, leftcon, pad="left") if dual else start if start != "λ" else ""
                     
                 t.append(Edge(State(start), PH, output + PH, State(q0), ctype=ctype)) 
                 start = end
@@ -153,10 +171,10 @@ def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
             # transduction handling is a little different because its not part of the context
             
             # for dual contexts PH transitions, subtract the left context that has already been output
-            output = subtract_lcon(start, leftcon) if dual else start 
+            output = string_complement(start, leftcon, pad="left") if dual else start 
         
             # transduction: output out symbol + state name   
-            mapping = _out + "".join(context) 
+            mapping = _out + "".join(con) 
         
             t.append(Edge(State(start), right_context[-1], mapping, State(q0), ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
             t.append(Edge(State(start), PH, output+PH, State(q0), ctype=ctype))      
@@ -218,42 +236,50 @@ def prefix_transitions(context_trans):
                       
                 find_mapping = [t for t in matched_trans if t.is_transduction] # finds the transduction transition
                 
-                # modify the last seen symbol depending on the matched transition's context type and append to transitions_to_add
+                # modify the transition output depending on the matched transition's context type and append to transitions_to_add
                 if not symbol_seen:
-                    match = matched_trans[0]
-                    ctype = match.ctype
-                    lcon = match.seen_Lcon
-                    output = last_seen_symbol
-                    is_transduction = False
-                
-                    if ctype == "dual":
-                        output = subtract_lcon(ppt.start, lcon) + last_seen_symbol
-                        
-                    elif ctype == "right":
-                        
-                        
-                        
-                        # self loops should only get last_seen_symbol. Otherwise, concatenate state name with last_seen_symbol
-                        if ppt.start.label != ppt.end.label:
-                            output = ppt.start.label + last_seen_symbol
-                            
-                            
+                    for match in matched_trans:
+                        ctype = match.ctype
+                        lcon = match.seen_Lcon
+                        output = last_seen_symbol
+                        is_transduction = False
                     
-                    # need to replace the placeholder transduction mapping with one that goes to a prefix state (if applicable)
-                    if match in find_mapping and match.insym == last_seen_symbol:
-                        output = match.outsym
-                        is_transduction = True # setting this lets the already existing PH transduction get overwritten in trans_to_dict()
-                          
-                     # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
-                    if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
-                        continue
-                    
-                    transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end, is_transduction=is_transduction))
-    
-    # debugging code
-    #             print(f"{last_seen_symbol = }")
-    #             print(f"Proposed ppt: {ppt}")
-    #             print(f"Matched trans: {matched_trans}\n")
+                        if ctype == "dual":
+                            
+                            if ppt.start.label != ppt.end.label:
+                                output = string_complement(ppt.start, lcon, pad="left") + ppt.end.label 
+                            
+                        elif ctype == "right":
+                            
+                            # self loops should only get last_seen_symbol. Otherwise, concatenate state name with last_seen_symbol
+                            if ppt.start.label != ppt.end.label:
+                                
+                                outsym = ppt.start.label + last_seen_symbol
+                                output = string_complement(outsym, ppt.end.label, pad="right") + "λ"
+                        
+                        # this block handles the transduction transition, i.e., whether the transduction should point to a prefix state, or q0      
+                        if match in find_mapping and match.insym == last_seen_symbol:
+                            is_transduction = True # setting this lets the already existing PH transduction get overwritten in make_delta()                           
+                            output = match.outsym
+                            
+                            # transduction prefix transitions can get dicey. When ctype == right, need to subtract the end state from the output symbol
+                            if ctype == "right":
+                                output = string_complement(match.outsym, ppt.end.label, pad="right")
+                                
+                            if ctype == "dual":
+                                output = match.outsym
+                                
+                                
+                        # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
+                        if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
+                            continue
+                        
+                        transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end, is_transduction=is_transduction))
+        
+        # debugging code
+    #                 print(f"{last_seen_symbol = }")
+    #                 print(f"Proposed ppt: {ppt}")
+    #                 print(f"Matched trans: {matched_trans}\n")
     
     # print("Possible transitions being added:", *transitions_to_add, sep="\n")    
     # print("\n")   
@@ -274,7 +300,7 @@ def get_Q_sigma_gamma(context_trans):
          
 def get_final_mappings(trans):
     
-    d = {}
+    d = {State("λ"): ""}
     for t in trans:
         if t.start not in d and t.start.label != "λ":
             if t.ctype == "left":
@@ -284,7 +310,7 @@ def get_final_mappings(trans):
                 output = t.start.label
 
             elif t.ctype == "dual":
-                output = subtract_lcon(t.start.label, t.seen_Lcon)
+                output = string_complement(t.start.label, t.seen_Lcon , pad="left")
             
             d[t.start] = intersperse(output)
     return d
@@ -302,7 +328,7 @@ def get_transitions(insyms, outsyms, contexts=[]):
         context_trans += Rcon_transitions(insyms, outsyms, Rcons)  
     if Dualcons:
         context_trans += Dcon_transitions(insyms, outsyms, Dualcons)
-        
+    
     all_trans = context_trans + prefix_transitions(context_trans)
     
     return all_trans
