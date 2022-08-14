@@ -8,8 +8,6 @@ from transitions import PH, cfx
 from typing import List
 from tabulate import tabulate 
 
-
-
 @dataclass
 class DFST:
                              
@@ -19,8 +17,10 @@ class DFST:
     gamma:set
     finals: dict
     rules:List[str]
+    rule_type:str
     v0:str = ""
     q0:str = tr.State("λ")
+    
     
     @property                    
     def displayparams(self):
@@ -75,21 +75,26 @@ class DFST:
                           
                 graph.add_node(pydot.Node(str(prev_state), shape="doublecircle"))
                 graph.add_node(pydot.Node(str(next_state), shape="doublecircle"))
-                graph.add_edge(pydot.Edge(str(prev_state), str(next_state), label=f"{in_sym}\:{out_trans[1]}"))
+                graph.add_edge(pydot.Edge(str(prev_state), str(next_state), label=f"{in_sym} : {out_trans[1]}"))
                 i += 1
                 
         graph.write_png(file_name)
     
     # users need to input strings space delimited. This accounts for symbols having multiple characters (i.e. "[tns=past] v e r b [mod=imp] ")
-    def rewrite(self, s, to_list=False):
+    def rewrite(self, s:str) -> str:
         
         output = ""
         state = self.q0 # begin at the initial state
         
-        for char in s.split():  
+        if self.rule_type == "insertion":
+            s = list("Ø" + tr.intersperse("Ø", s.split()) + "Ø")
+        else:
+            s = s.split()
+            
+        for char in s:  
             try: # attempt to find transitions
                 outsym = self.delta[state][char][0] 
-                output += outsym # lambda here for right contexts
+                output += outsym 
                 state = self.delta[state][char][1]
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with char
@@ -97,49 +102,107 @@ class DFST:
                 output += outsym.replace(PH, char) 
                 state = self.delta[state][PH][1]
         
-        #! change this formatting 
-        output = (f"{self.v0} {tr.intersperse(output)} {self.finals[state]}".replace("λ", "")).split()
+        output = ((tr.intersperse(" ", output) + self.finals[state]).replace("λ", "").replace("Ø", "")).split()
         
-        if to_list: # easier to view changed string when its in a list. Essentially a debugging option.
-            return output
-        
-        
-        return "".join(output)
+       
+        return self.v0 + "".join(output)
     
-def transducer(pairs:List[tuple], contexts=[], v0="") ->  DFST:
-    
-    insyms = [pair[0] for pair in pairs]
-    outsyms = [pair[1] if pair[1] else "Ø" for pair in pairs] # accounts for deletion rules
-    
-    
-    # this condition block acquires the string representations of rewrite rules for displaying
-    rules = [] 
-    if contexts: # context dependent 
-        for con in contexts:
+    @classmethod
+    def from_rules(cls, insyms, outsyms, contexts=[], v0="", rule_type=""):
+        assert len(insyms) == len(outsyms)
+
+        # this condition block acquires the string representations of rewrite rules for displaying
+        rules = []  
+        if contexts: # context dependent 
+            for con in contexts:
+                for _in, _out in zip(insyms, outsyms):
+                    rules.append(f"{_in} -> {_out} / {con}")   
+        else: # context free 
             for _in, _out in zip(insyms, outsyms):
-                rules.append(f"{_in} -> {_out} / {con}")
-                     
-    else: # context free 
-        for _in, _out in zip(insyms, outsyms):
-            rules.append(f"{_in} -> {_out} / _")
+                rules.append(f"{_in} -> {_out} / _")
+
+
+        transitions = tr.get_transitions(insyms, outsyms, contexts)
+        delta = tr.get_delta(transitions)
+        Q, sigma, gamma = tr.get_Q_sigma_gamma(transitions)
+        finals = tr.get_final_mappings(transitions)
+            
+        return cls(delta, Q, sigma, gamma, finals, rules, v0=v0, rule_type=rule_type)
+
     
-    transitions = tr.get_transitions(insyms, outsyms, contexts)
+def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
-    delta = tr.make_delta(transitions)
-    Q, sigma, gamma = tr.get_Q_sigma_gamma(transitions)
-    finals = tr.get_final_mappings(transitions)
-      
-    return DFST(delta, Q, sigma, gamma, finals, rules, v0)
+    insyms, outsyms = [], []
+    for insym, outsym in pairs:
+        if not insym or not outsym:
+            raise tr.RuleError(f"Invalid pair {insym, outsym}")
+
+        insyms.append(insym)
+        outsyms.append(outsym)
+        
+    return DFST.from_rules(insyms, outsyms, contexts, v0=v0, rule_type="assimilation")
     
+def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
+    
+    insyms, outsyms = [], []
+    for insym, outsym in pairs:
+        if not insym or outsym:
+            raise tr.RuleError(f"Invalid pair {insym, outsym}")
+
+        insyms.append(insym)
+        outsyms.append("Ø")
+        
+    return DFST.from_rules(insyms, outsyms, contexts, v0=v0, rule_type="deletion")
+    
+    
+def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
+    
+    insyms, outsyms = [], []
+    for insym, outsym in pairs:
+        if insym or not outsym:
+            raise tr.RuleError(f"Invalid pair {insym, outsym}")
+
+        insyms.append("Ø")
+        outsyms.append(outsym)
+        
+    contexts_insertion = []
+    
+    for context in contexts:
+        hyphen = context.index("_")
+        
+        if hyphen == len(context)-1: # left context rule
+            context = context[:hyphen]
+            new_context = list("Ø" + tr.intersperse("Ø", context.split()))
+            contexts_insertion.append(" ".join(new_context) + " _")
+
+        elif hyphen == 0: # right context rule
+            pass
+
+        else: # dual context
+            pass
+            
+    
+    print(contexts_insertion)
+    return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
+        
+        
+        
+        
+rule = insertion([("", "[mod=imp]")], ["a c a b _"])
+rule.displayparams
+print(rule.rewrite("a c a b a c a b"))
+
+
 
 
 # test = transducer([("a", "A"), ("h", "H")], ["x y z _ z y x"])
 # test.displayparams
-# print(test.rewrite("x y z h z y x", to_list=True))
+# print(test.rewrite("x y z h z y x", to_list=True,))
 
-test = transducer([("a", "X"), ("b", "Y")], ["a c _ c b"])
-test.displayparams
-print(test.rewrite("a c a c b", to_list=True))
+#! was giving some issues
+# test = transducer([("a", "X"), ("b", "Y")], ["a c _ c b"])
+# test.displayparams
+# print(test.rewrite("a c a c b", to_list=True))
 
 # test = transducer([("c", "C")], ["c _ d a c"])
 # test.displayparams

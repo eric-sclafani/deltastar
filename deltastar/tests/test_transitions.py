@@ -1,6 +1,6 @@
 import pytest
 import sys
-sys.path.append("/home/eric/python/projects/deltastar/") # change this dir if needed
+sys.path.append("/home/eric/python/projects/deltastar/deltastar") # change this dir to where deltastar is installed
 
 from deltastar.transitions import State, Edge
 from deltastar.transitions import get_transitions
@@ -9,8 +9,13 @@ from deltastar.transitions import make_delta
 # the goal of these tests is to locate the inevitable edge cases that arise from certain combinations of contexts and mappings
 # (i.e., the mapping contains symbols also found in the context and vice versa, multiple contexts share the same symbols, etc...)
 # that is why these most of these tests are filled with seemingly random and non-sensical combinations 
-# insyms, outsyms takes the format of what happens AFTER the user's rewrite rules have been received 
+
+# For these tests, insyms, outsyms takes the format of what happens AFTER the user's rewrite rules have been received,
+# i.e. insyms and outsyms have a 1 to 1 correspondence
                    
+                   
+                   
+#! ADD DELETION AND INSERTION TESTS FOR ALL
 class TestContextFree:
 
     def test_cf_1(self):

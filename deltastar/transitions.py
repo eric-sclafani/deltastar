@@ -11,11 +11,9 @@ from dataclasses import dataclass
 PH = "?" 
 cfx = lambda string: f"<{string}>"
 get_lcon = lambda s1, s2: "".join([i for i in s1 if i in s2]) # string intersection w.r.t s1
-intersperse = lambda s: " ".join([i for i in s])    
+intersperse = lambda delim, s: delim.join([i for i in s])    
 
-# def string_intersection(s1, s2)
-
-def string_complement(s1, s2, pad=""):
+def string_complement(s1, s2, pad):
     """Performs the relative complement operation on two strings. """
     
     output = ""
@@ -68,7 +66,9 @@ class Edge:
 class ContextError(Exception):
     pass
 
-    
+class RuleError(Exception):
+    pass
+ 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
 def parse_contexts(contexts):
@@ -106,7 +106,6 @@ def cf_transitions(insyms, outsyms,q0="λ"):
 def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
     
     t = []
-    
     for context in contexts:
         
         # fixes an annoying bug w.r.t left vs. dual context transition generation
@@ -312,7 +311,7 @@ def get_final_mappings(trans):
             elif t.ctype == "dual":
                 output = string_complement(t.start.label, t.seen_Lcon , pad="left")
             
-            d[t.start] = intersperse(output)
+            d[t.start] = intersperse(" ", output)
     return d
 
 def get_transitions(insyms, outsyms, contexts=[]):
@@ -334,7 +333,7 @@ def get_transitions(insyms, outsyms, contexts=[]):
     return all_trans
 
     
-def make_delta(trans):
+def get_delta(trans):
     
     d = defaultdict(lambda: defaultdict(dict))
     for tran in trans:
