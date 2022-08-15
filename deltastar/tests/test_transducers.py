@@ -4,44 +4,84 @@ sys.path.append("/home/eric/python/projects/deltastar/deltastar") # change this 
 from deltastar.transducers import assimilation, deletion, insertion
 
 
-class TestDFST:
+class TestAssimilation:
     
-    def test_rewrite_Lcon_assimilation(self):
+    def test_Lcon_rewrite_1(self):
         pass
     
-    def test_rewrite_Lcon_deletion(self):
+    def test_Lcon_rewrite_2(self):
         pass
     
-    def test_rewrite_Lcon_insertion(self):
+    def test_Rcon_rewrite_1(self):
         pass
     
-    def test_rewrite_Rcon_assimilation(self):
+    def test_Rcon_rewrite_2(self):
         pass
     
-    def test_rewrite_Rcon_deletion(self):
+    def test_Dcon_rewrite_1(self):
         pass
     
-    def test_rewrite_Rcon_insertion(self):
+    def test_Dcon_rewrite_2(self):
         pass
     
-    def test_rewrite_Dcon_assimilation(self):
+    def test_Mixedcon_rewrite_1(self):
         pass
     
-    def test_rewrite_Dcon_deletion(self):
+    def test_Mixedcon_rewrite_2(self):
         pass
     
-    def test_rewrite_Dcon_insertion(self):
+@pytest.mark.skip()     
+class TestDeletion:
+    
+    def test_Lcon_rewrite_1(self):
         pass
     
-    def test_rewrite_Mixedcon_assimilation(self):
+    def test_Lcon_rewrite_2(self):
         pass
     
-    def test_rewrite_Mixedcon_deletion(self):
+    def test_Rcon_rewrite_1(self):
         pass
     
-    def test_rewrite_Mixedcon_insertion(self):
+    def test_Rcon_rewrite_2(self):
         pass
     
-        
+    def test_Dcon_rewrite_1(self):
+        pass
+    
+    def test_Dcon_rewrite_2(self):
+        pass
+    
+    def test_Mixedcon_rewrite_1(self):
+        pass
+    
+    def test_Mixedcon_rewrite_2(self):
+        pass
+
+@pytest.mark.skip() 
+class TestInsertion:
+    
+    def test_Lcon_rewrite_1(self):
+        pass
+    
+    def test_Lcon_rewrite_2(self):
+        pass
+    
+    def test_Rcon_rewrite_1(self):
+        pass
+    
+    def test_Rcon_rewrite_2(self):
+        pass
+    
+    def test_Dcon_rewrite_1(self):
+        pass
+    
+    def test_Dcon_rewrite_2(self):
+        pass
+    
+    def test_Mixedcon_rewrite_1(self):
+        pass
+    
+    def test_Mixedcon_rewrite_2(self):
+        pass
     
 

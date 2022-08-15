@@ -8,6 +8,8 @@ from transitions import PH, cfx
 from typing import List
 from tabulate import tabulate 
 
+RESERVED = ["[BOS]", "[EOS]", "λ", "Ø"]
+
 @dataclass
 class DFST:
                              
@@ -22,6 +24,8 @@ class DFST:
     q0:str = tr.State("λ")
     
     
+    #! revise some of this code:
+    #TODO: remove null from insertion rules, 
     @property                    
     def displayparams(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
@@ -31,7 +35,7 @@ class DFST:
         print(*self.rules, sep="\n")
         
         print("~"*28,"\n")
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {self.q0}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
+        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {cfx(self.q0.label)}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
         
         print(f"Delta:")
         
@@ -87,9 +91,9 @@ class DFST:
         state = self.q0 # begin at the initial state
         
         if self.rule_type == "insertion":
-            s = list("Ø" + tr.intersperse("Ø", s.split()) + "Ø")
+            s = list("[BOS] "+"Ø" + tr.intersperse("Ø", s.split()) + "Ø" + " [EOS]")
         else:
-            s = s.split()
+            s = ("[BOS] " + s + " [EOS]").split()
             
         for char in s:  
             try: # attempt to find transitions
@@ -102,10 +106,12 @@ class DFST:
                 output += outsym.replace(PH, char) 
                 state = self.delta[state][PH][1]
         
-        output = ((tr.intersperse(" ", output) + self.finals[state]).replace("λ", "").replace("Ø", "")).split()
-        
-       
-        return self.v0 + "".join(output)
+        output = ((tr.intersperse(" ", output) + self.finals[state])).split()
+        output = self.v0 + "".join(output).replace("λ", "")\
+                                          .replace("Ø", "")\
+                                          .replace("[BOS]", "")\
+                                          .replace("[EOS]", "")
+        return output
     
     @classmethod
     def from_rules(cls, insyms, outsyms, contexts=[], v0="", rule_type=""):
@@ -166,38 +172,37 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
         outsyms.append(outsym)
         
     contexts_insertion = []
-    
+    apply_intersperse = lambda string : tr.intersperse("Ø", string.split())
     for context in contexts:
         hyphen = context.index("_")
         
-        if hyphen == len(context)-1: # left context rule
+        if hyphen == len(context)-1: # left context
             context = context[:hyphen]
-            new_context = list("Ø" + tr.intersperse("Ø", context.split()))
+            new_context = list("Ø" + apply_intersperse(context))
             contexts_insertion.append(" ".join(new_context) + " _")
 
-        elif hyphen == 0: # right context rule
-            pass
+        elif hyphen == 0: # right context
+            context = context[hyphen+1:]
+            new_context = list(apply_intersperse(context))
+            contexts_insertion.append("_ " + " ".join(new_context))
 
         else: # dual context
-            pass
+            left, right = context.split("_")
+            left = list( "Ø" + apply_intersperse(left))
+            right = list(apply_intersperse(right) + "Ø")
             
-    
-    print(contexts_insertion)
+            dual = " ".join(left) + " _ " + " ".join(right)
+            contexts_insertion.append(dual)
+            
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
         
+
         
-        
-rule = insertion([("", "[mod=imp]")], ["a c a b _"])
-rule.displayparams
-print(rule.rewrite("a c a b a c a b"))
 
-
-
-
-# test = transducer([("a", "A"), ("h", "H")], ["x y z _ z y x"])
+# test = assimilation([("a", "A"), ("h", "H")], ["x y z _ z y x"])
 # test.displayparams
-# print(test.rewrite("x y z h z y x", to_list=True,))
+# print(test.rewrite("x y z h z y x"))
 
 #! was giving some issues
 # test = transducer([("a", "X"), ("b", "Y")], ["a c _ c b"])
@@ -207,6 +212,10 @@ print(rule.rewrite("a c a b a c a b"))
 # test = transducer([("c", "C")], ["c _ d a c"])
 # test.displayparams
 # print(test.rewrite("x y z h z y x", to_list=True))
+
+test = assimilation([("x", "y")], ["[BOS] b _ h [EOS]"])
+test.displayparams
+print(test.rewrite("b x h [EO]"))
 
 
 

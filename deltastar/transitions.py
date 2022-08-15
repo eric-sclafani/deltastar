@@ -33,8 +33,7 @@ def string_complement(s1, s2, pad):
 class State:
     
     label:str
-    initial:bool = False
-    
+
     def __len__(self):
         return len(self.label)
 
@@ -79,7 +78,7 @@ def parse_contexts(contexts):
         if not isinstance(con, str):
             raise ContextError(f"{con} must be of type 'str'")
         elif "_" not in con:
-            raise ContextError(f"{con} not recognized: context must be specified as X_, _X, or X_X, where X = contextual symbol(s)")
+            raise ContextError(f"{con} not recognized: context must be specified as X _, _ X, or X _ X, where X = contextual symbol(s)")
     
         con = tuple(con.split())
         

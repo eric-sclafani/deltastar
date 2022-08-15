@@ -4,7 +4,7 @@ sys.path.append("/home/eric/python/projects/deltastar/deltastar") # change this 
 
 from deltastar.transitions import State, Edge
 from deltastar.transitions import get_transitions
-from deltastar.transitions import make_delta
+from deltastar.transitions import get_delta
 
 # the goal of these tests is to locate the inevitable edge cases that arise from certain combinations of contexts and mappings
 # (i.e., the mapping contains symbols also found in the context and vice versa, multiple contexts share the same symbols, etc...)
@@ -15,7 +15,7 @@ from deltastar.transitions import make_delta
                    
                    
                    
-#! ADD DELETION AND INSERTION TESTS FOR ALL
+#! ADD DELETION, INSERTION, [BOS]/[EOS] TESTS FOR ALL
 class TestContextFree:
 
     def test_cf_1(self):
@@ -27,7 +27,7 @@ class TestContextFree:
                        Edge(State("λ"), "c", "C", State("λ"),ctype="cf"),
                        Edge(State("λ"), "?", "?", State("λ"),ctype="cf")
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms))
          
         
     def test_cf_2(self):
@@ -39,12 +39,10 @@ class TestContextFree:
                        Edge(State("λ"), "[caus=yes]", "de", State("λ"),ctype="cf"), 
                        Edge(State("λ"), "?", "?", State("λ"),ctype="cf")
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms))
         
-    
 class TestLeftContext:
-    
-    
+
     def test_Lcon_1(self): 
         
         insyms, outsyms = [("a","x"), ("b", "y")]
@@ -80,7 +78,7 @@ class TestLeftContext:
                        Edge(State("xyz"), "?", "?", State("λ"), ctype="left"),
                        Edge(State("xyz"), "x", "y", State("x"), ctype="left", is_transduction=True),
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms, context))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms, context))
         
     def test_Lcon_2(self):
     
@@ -96,9 +94,8 @@ class TestLeftContext:
                        Edge(State("bbb"), "b", "p", State("bbb"), ctype="left", is_transduction=True),
                        Edge(State("bbb"), "?", "?", State("λ"), ctype="left"),
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms, context))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms, context))
         
-    
     def test_Lcon_3(self):
         
         insyms, outsyms = [("a"), ("b")] 
@@ -137,7 +134,7 @@ class TestLeftContext:
                        Edge(State("b"), "c", "c", State("c"), ctype="left"),
                        Edge(State("b"), "b", "b", State("b"), ctype="left"),
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms, context))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms, context))
         
 
 class TestRightContext:
@@ -160,7 +157,7 @@ class TestRightContext:
                        Edge(State("aaba"), "?", "aaba?", State("λ"), ctype="right"),
                        Edge(State("aaba"), "a", "aabλ", State("aa"), ctype="right"),
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms, context))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms, context))
     
     def test_Rcon_2(self):
         
@@ -186,7 +183,7 @@ class TestRightContext:
                        Edge(State("gz"), "?", "gz?", State("λ"), ctype="right"),
                        Edge(State("gz"), "g", "gzλ", State("g"), ctype="right")
                        ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms, context))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms, context))
     
     
     def test_Rcon_3(self):
@@ -232,34 +229,35 @@ class TestRightContext:
                        Edge(State("xb"), "a", "xbλ", State("a"), ctype="right"),
                        Edge(State("xb"), "x", "xbλ", State("x"), ctype="right"),
                       ]
-        assert make_delta(transitions) == make_delta(get_transitions(insyms, outsyms, context))
+        assert get_delta(transitions) == get_delta(get_transitions(insyms, outsyms, context))
 
-# class TestDualContext:
+@pytest.mark.skip() 
+class TestDualContext:
     
         
-#     def test_Dcon_1(self):
-#         pass
+    def test_Dcon_1(self):
+        pass
     
     
     
-#     def test_Dcon_2(self):
-#         pass
+    def test_Dcon_2(self):
+        pass
     
     
-#     def test_Dcon_3(self):
-#         pass
+    def test_Dcon_3(self):
+        pass
     
-
-# class TestMixedContexts:
-    
-    
-#     def test_mixedcon_1(self):
-#         pass
+@pytest.mark.skip() 
+class TestMixedContexts:
     
     
+    def test_mixedcon_1(self):
+        pass
     
-#     def test_mixedcon_2(self):
-#         pass
+    
+    
+    def test_mixedcon_2(self):
+        pass
 
 
 
