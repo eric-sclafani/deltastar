@@ -1,32 +1,11 @@
-
 # -*- coding: utf8 -*-
 
 # this file contains functions for parsing the user's specified rewrite rule(s) and 
 # generating the appropriate transitions based off of contexts
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Imports and other instantiations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 from collections import defaultdict
 from dataclasses import dataclass
-
-PH = "?" 
-cfx = lambda string: f"<{string}>"
-get_lcon = lambda s1, s2: "".join([i for i in s1 if i in s2]) # string intersection w.r.t s1
-intersperse = lambda delim, s: delim.join([i for i in s])    
-
-def string_complement(s1, s2, pad):
-    """Performs the relative complement operation on two strings. """
-    
-    output = ""
-    if pad == "right":
-        s2 = s2.rjust(len(s1), " ")
-    elif pad == "left":
-        s2 = s2.ljust(len(s1), " ")
-        
-    for i, s in enumerate(s1):
-        if s != s2[i]:
-            output += s
-    return output
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+from utils.stringfunctions import PH, intersperse, string_complement, despace
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 @dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
@@ -195,7 +174,7 @@ def Dcon_transitions(insyms, outsyms, contexts,q0="λ"):
         t.extend(dual_trans)  
     return t
 
-def prefix_transitions(context_trans):
+def prefix_transitions(context_trans, transduction_envs):
     
     Q, sigma, _ = get_Q_sigma_gamma(context_trans)
     Q.remove(State("λ")) # remove λ state 
@@ -216,8 +195,8 @@ def prefix_transitions(context_trans):
             possible_prefix_trans.extend([Edge(State(q), PH, PH, State(pfxstate + s)) for s in sigma])
             pfxstate = pfxstate[1:]
                
-
         for ppt in possible_prefix_trans:
+            
             if ppt.end in Q: # disregard states that dont exist
                 
                 # find all already existing transitions that have ppt.start as a start state  
@@ -253,8 +232,19 @@ def prefix_transitions(context_trans):
                             if ppt.start.label != ppt.end.label:
                                 
                                 outsym = ppt.start.label + last_seen_symbol
-                                output = string_complement(outsym, ppt.end.label, pad="right") + "λ"
-                        
+                                
+                                # important line: when going to a right context state, we dont want to send the entire outsym to the output tape
+                                output = string_complement(outsym, ppt.end.label, pad="right")
+                                
+                                for env, out_mapping in transduction_envs.items():
+                                    env = despace(env)
+                                    
+                                    # checks to see if the prefix trans output also creates an environment for a transduction 
+                                    if outsym.endswith(env) and outsym != env: 
+                                        output = output[:-1] + out_mapping
+                                        
+                            output += "λ"
+                                
                         # this block handles the transduction transition, i.e., whether the transduction should point to a prefix state, or q0      
                         if match in find_mapping and match.insym == last_seen_symbol:
                             is_transduction = True # setting this lets the already existing PH transduction get overwritten in make_delta()                           
@@ -262,10 +252,10 @@ def prefix_transitions(context_trans):
                             
                             # transduction prefix transitions can get dicey. When ctype == right, need to subtract the end state from the output symbol
                             if ctype == "right":
-                                output = string_complement(match.outsym, ppt.end.label, pad="right")
+                                output = string_complement(match.outsym, ppt.end.label, pad="right") + "λ"
                                 
                             if ctype == "dual":
-                                output = match.outsym
+                                output = match.outsym + "λ"
                                 
                                 
                         # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
@@ -284,15 +274,15 @@ def prefix_transitions(context_trans):
              
     return transitions_to_add 
 
-def get_Q_sigma_gamma(context_trans):
+def get_Q_sigma_gamma(trans):
     
     Q = []
-    for t in context_trans:
+    for t in trans:
         if t.start not in Q:
             Q.append(t.start)
     
-    sigma = set(t.insym for t in context_trans)
-    gamma = set(t.outsym for t in context_trans) 
+    sigma = set(t.insym for t in trans)
+    gamma = set(t.outsym for t in trans) 
     return Q, sigma, gamma 
 
          
@@ -310,10 +300,10 @@ def get_final_mappings(trans):
             elif t.ctype == "dual":
                 output = string_complement(t.start.label, t.seen_Lcon , pad="left")
             
-            d[t.start] = intersperse(" ", output)
+            d[t.start] = intersperse(output)
     return d
 
-def get_transitions(insyms, outsyms, contexts=[]):
+def get_transitions(insyms, outsyms, contexts=[], transduction_envs=[]):
     
     context_trans = [] # list of all context transitions 
     Lcons, Rcons, Dualcons= parse_contexts(contexts)
@@ -327,7 +317,7 @@ def get_transitions(insyms, outsyms, contexts=[]):
     if Dualcons:
         context_trans += Dcon_transitions(insyms, outsyms, Dualcons)
     
-    all_trans = context_trans + prefix_transitions(context_trans)
+    all_trans = context_trans + prefix_transitions(context_trans, transduction_envs)
     
     return all_trans
 

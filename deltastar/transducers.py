@@ -4,11 +4,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
-from transitions import PH, cfx
+from utils.stringfunctions import PH, cfx, intersperse
 from typing import List
 from tabulate import tabulate 
 
-RESERVED = ["[BOS]", "[EOS]", "λ", "Ø"]
 
 @dataclass
 class DFST:
@@ -24,8 +23,7 @@ class DFST:
     q0:str = tr.State("λ")
     
     
-    #! revise some of this code:
-    #TODO: remove null from insertion rules, 
+    #! revise displayparams:
     @property                    
     def displayparams(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
@@ -85,50 +83,65 @@ class DFST:
         graph.write_png(file_name)
     
     # users need to input strings space delimited. This accounts for symbols having multiple characters (i.e. "[tns=past] v e r b [mod=imp] ")
-    def rewrite(self, s:str) -> str:
+    def rewrite(self, s:str, show_path=False) -> str:
         
+        path = []
         output = ""
         state = self.q0 # begin at the initial state
         
         if self.rule_type == "insertion":
-            s = list("[BOS] "+"Ø" + tr.intersperse("Ø", s.split()) + "Ø" + " [EOS]")
+            s = list("$ "+ "Ø" + intersperse(s.split()) + "Ø" + " $", "Ø")
         else:
-            s = ("[BOS] " + s + " [EOS]").split()
+            s = ("$ " + s + " $").split()
             
-        for char in s:  
+        for sym in s:  
             try: # attempt to find transitions
-                outsym = self.delta[state][char][0] 
-                output += outsym 
-                state = self.delta[state][char][1]
+                outsym = self.delta[state][sym][0] 
+                output += " " + intersperse(outsym) 
+                state = self.delta[state][sym][1]
+                path.append(state.label)
                 
-            except KeyError: # if not found, use the placeholder transition and replace placeholder with char
+            except KeyError: # if not found, use the placeholder transition and replace placeholder with sym
                 outsym = self.delta[state][PH][0]
-                output += outsym.replace(PH, char) 
+                output += " " + intersperse(outsym.replace(PH, sym)) 
                 state = self.delta[state][PH][1]
+                path.append(state.label)
+                
+        output += self.finals[state]
         
-        output = ((tr.intersperse(" ", output) + self.finals[state])).split()
-        output = self.v0 + "".join(output).replace("λ", "")\
-                                          .replace("Ø", "")\
-                                          .replace("[BOS]", "")\
-                                          .replace("[EOS]", "")
-        return output
+        placeholders = ["$ ", " $", "λ ", " λ", "Ø ", " Ø"]
+        for sym in placeholders:
+            output = output.replace(sym, "").strip()
+            
+        if show_path:
+            print(f"\nInput string: {' '.join(s)}")
+            print("String path:")
+            print(" --> ".join(path))
+        
+        self.v0 = self.v0 + " " if self.v0 else ""
+        return self.v0 + output
     
     @classmethod
     def from_rules(cls, insyms, outsyms, contexts=[], v0="", rule_type=""):
         assert len(insyms) == len(outsyms)
 
-        # this condition block acquires the string representations of rewrite rules for displaying
+        # this condition block acquires the string representations of rewrite rules for displaying, 
+        # and transduction environments to be used when generating prefix transitions
         rules = []  
+        transduction_envs = {}
         if contexts: # context dependent 
             for con in contexts:
                 for _in, _out in zip(insyms, outsyms):
-                    rules.append(f"{_in} -> {_out} / {con}")   
+                    rules.append(f"{_in} -> {_out} / {con}") 
+                    
+                    _con = con.replace("_", _in).strip()
+                    transduction_envs[_con] = _out
+                    
         else: # context free 
             for _in, _out in zip(insyms, outsyms):
                 rules.append(f"{_in} -> {_out} / _")
 
-
-        transitions = tr.get_transitions(insyms, outsyms, contexts)
+        transitions = tr.get_transitions(insyms, outsyms, contexts, transduction_envs)
         delta = tr.get_delta(transitions)
         Q, sigma, gamma = tr.get_Q_sigma_gamma(transitions)
         finals = tr.get_final_mappings(transitions)
@@ -172,7 +185,7 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
         outsyms.append(outsym)
         
     contexts_insertion = []
-    apply_intersperse = lambda string : tr.intersperse("Ø", string.split())
+    apply_intersperse = lambda string : intersperse("Ø", string.split())
     for context in contexts:
         hyphen = context.index("_")
         
@@ -196,27 +209,37 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
-        
-
-        
+    
 
 # test = assimilation([("a", "A"), ("h", "H")], ["x y z _ z y x"])
 # test.displayparams
 # print(test.rewrite("x y z h z y x"))
 
-#! was giving some issues
-# test = transducer([("a", "X"), ("b", "Y")], ["a c _ c b"])
-# test.displayparams
-# print(test.rewrite("a c a c b", to_list=True))
 
 # test = transducer([("c", "C")], ["c _ d a c"])
 # test.displayparams
 # print(test.rewrite("x y z h z y x", to_list=True))
 
-test = assimilation([("x", "y")], ["[BOS] b _ h [EOS]"])
-test.displayparams
-print(test.rewrite("b x h [EO]"))
+# test = assimilation([("x", "y")], ["b a _ "])
+# test.displayparams
+# print(test.rewrite("b a x "))
+
+
+# fst = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
+# fst.displayparams
+# print(fst.rewrite("a c a c b", show_path=True))
 
 
 
-    
+# ! was giving some issues (right context prefix transition)
+# test = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
+# test.displayparams
+
+
+# fst = assimilation([("a", "b"), ("x", "y")], ["_ x y z", "_ b b", " _ a"])
+# fst.displayparams
+# print(fst.rewrite("a a a f a x y x y z x x y z a a x a"))
+
+
+
+
