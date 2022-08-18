@@ -1,10 +1,12 @@
+# -*- coding: utf8 -*-
+
 
 # Eric Sclafani
 from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
-from utils.stringfunctions import PH, cfx, intersperse
+from utils.stringfunctions import PH, cfx, intersperse, despace
 from typing import List
 from tabulate import tabulate 
 
@@ -22,8 +24,6 @@ class DFST:
     v0:str = ""
     q0:str = tr.State("λ")
     
-    
-    #! revise displayparams:
     @property                    
     def displayparams(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
@@ -94,22 +94,22 @@ class DFST:
         else:
             s = ("$ " + s + " $").split()
             
-        for sym in s:  
+        for sym in s: 
             try: # attempt to find transitions
                 outsym = self.delta[state][sym][0] 
-                output += " " + intersperse(outsym) 
+                output += outsym 
                 state = self.delta[state][sym][1]
                 path.append(state.label)
                 
             except KeyError: # if not found, use the placeholder transition and replace placeholder with sym
                 outsym = self.delta[state][PH][0]
-                output += " " + intersperse(outsym.replace(PH, sym)) 
+                output += outsym.replace(PH, sym)
                 state = self.delta[state][PH][1]
                 path.append(state.label)
-                
+              
         output += self.finals[state]
         
-        placeholders = ["$ ", " $", "λ ", " λ", "Ø ", " Ø"]
+        placeholders = ["$", "λ", "Ø"]
         for sym in placeholders:
             output = output.replace(sym, "").strip()
             
@@ -119,7 +119,7 @@ class DFST:
             print(" --> ".join(path))
         
         self.v0 = self.v0 + " " if self.v0 else ""
-        return self.v0 + output
+        return intersperse(self.v0 + output)
     
     @classmethod
     def from_rules(cls, insyms, outsyms, contexts=[], v0="", rule_type=""):
@@ -185,7 +185,7 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
         outsyms.append(outsym)
         
     contexts_insertion = []
-    apply_intersperse = lambda string : intersperse("Ø", string.split())
+    apply_intersperse = lambda string : intersperse(string.split(), "Ø")
     for context in contexts:
         hyphen = context.index("_")
         
@@ -229,16 +229,17 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
 # fst.displayparams
 # print(fst.rewrite("a c a c b", show_path=True))
 
+# fst = assimilation([("a", "b"), ("x", "y")], ["_ x y z", "_ b b", " _ a"])
+# fst.displayparams
+
 
 
 # ! was giving some issues (right context prefix transition)
-# test = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
-# test.displayparams
+test = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
+test.displayparams
+print(test.rewrite("a c a c b", show_path=True))
 
 
-# fst = assimilation([("a", "b"), ("x", "y")], ["_ x y z", "_ b b", " _ a"])
-# fst.displayparams
-# print(fst.rewrite("a a a f a x y x y z x x y z a a x a"))
 
 
 

@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from utils.stringfunctions import PH, intersperse, string_complement, despace
+from utils.stringfunctions import PH, string_complement, despace
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 @dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
@@ -125,7 +125,7 @@ def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
                 
             right_context = (_in,) + con # input symbol is always the first contextual transition. context is a tuple, so cast _in as a tuple and concat
             for sym in right_context[:-1]: # rightmost symbol is treated as the input for the transduction
-                end += sym
+                end += sym 
                 
                 # get the left context that was already pushed to the output tape
                 seen_Lcon = leftcon if dual else None
@@ -141,7 +141,7 @@ def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
                 # for dual contexts, subtract the left context that has already been output
                 output = string_complement(start, leftcon, pad="left") if dual else start if start != "λ" else ""
                     
-                t.append(Edge(State(start), PH, output + PH, State(q0), ctype=ctype)) 
+                t.append(Edge(State(start), PH, (output + PH), State(q0), ctype=ctype)) 
                 start = end
                 
             # reached the end of the context
@@ -154,7 +154,7 @@ def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
             mapping = _out + "".join(con) 
         
             t.append(Edge(State(start), right_context[-1], mapping, State(q0), ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
-            t.append(Edge(State(start), PH, output+PH, State(q0), ctype=ctype))      
+            t.append(Edge(State(start), PH, (output + PH), State(q0), ctype=ctype))      
                 
     return t
 
@@ -211,8 +211,6 @@ def prefix_transitions(context_trans, transduction_envs):
                     if mt.insym == last_seen_symbol and not mt.is_transduction:
                         symbol_seen.append(mt)
                       
-                find_mapping = [t for t in matched_trans if t.is_transduction] # finds the transduction transition
-                
                 # modify the transition output depending on the matched transition's context type and append to transitions_to_add
                 if not symbol_seen:
                     for match in matched_trans:
@@ -224,7 +222,7 @@ def prefix_transitions(context_trans, transduction_envs):
                         if ctype == "dual":
                             
                             if ppt.start.label != ppt.end.label:
-                                output = string_complement(ppt.start, lcon, pad="left") + ppt.end.label 
+                                output = string_complement(ppt.start, lcon, pad="left") + " " + ppt.end.label 
                             
                         elif ctype == "right":
                             
@@ -246,18 +244,26 @@ def prefix_transitions(context_trans, transduction_envs):
                             output += "λ"
                                 
                         # this block handles the transduction transition, i.e., whether the transduction should point to a prefix state, or q0      
+                        find_mapping = [t for t in matched_trans if t.is_transduction]
                         if match in find_mapping and match.insym == last_seen_symbol:
                             is_transduction = True # setting this lets the already existing PH transduction get overwritten in make_delta()                           
                             output = match.outsym
                             
                             # transduction prefix transitions can get dicey. When ctype == right, need to subtract the end state from the output symbol
                             if ctype == "right":
-                                output = string_complement(match.outsym, ppt.end.label, pad="right") + "λ"
+                                output = string_complement(match.outsym, ppt.end.label, pad="right") 
+                              
+                                
                                 
                             if ctype == "dual":
-                                output = match.outsym + "λ"
+                                output = match.outsym 
                                 
                                 
+                                
+                                
+                                
+                                
+                            output += "λ"
                         # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
                         if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
                             continue
@@ -271,7 +277,7 @@ def prefix_transitions(context_trans, transduction_envs):
     
     # print("Possible transitions being added:", *transitions_to_add, sep="\n")    
     # print("\n")   
-             
+        
     return transitions_to_add 
 
 def get_Q_sigma_gamma(trans):
@@ -300,7 +306,7 @@ def get_final_mappings(trans):
             elif t.ctype == "dual":
                 output = string_complement(t.start.label, t.seen_Lcon , pad="left")
             
-            d[t.start] = intersperse(output)
+            d[t.start] = output
     return d
 
 def get_transitions(insyms, outsyms, contexts=[], transduction_envs=[]):

@@ -8,11 +8,8 @@ sys.path.append("/home/eric/python/projects/deltastar/deltastar")
 from deltastar.transducers import assimilation, deletion, insertion
 
 # the goal of these tests is to locate the inevitable edge cases that arise from certain combinations of contexts and mappings
-# (i.e., the mapping contains symbols also found in the context and vice versa, multiple contexts share the same get_syms, etc...)
+# (i.e., the mapping contains symbols also found in the context and vice versa, multiple contexts share the same syms, etc...)
 # that is why these most of these tests are filled with seemingly random and non-sensical combinations 
-
-# the following rewrite rules match most (or all) of the ones seen in test_transitions
-
 
 def get_syms(fst, in_out_pairs):
     """Takes (input, output) pairs and performs element-wise string comparison for each symbol for both strings
@@ -34,7 +31,7 @@ def get_syms(fst, in_out_pairs):
             # this block enforces that the strings are of equal length
             if len(rewrite) != len(expected_string):
                 print(f"Strings of unequal length\n{report}")
-                yield True, False
+                yield len(rewrite), len(expected_string)
             
             elif sym1 != sym2:
                 print(report)
@@ -156,7 +153,6 @@ class TestAssimilation:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
-    #@pytest.mark.skip(reason="Contains an annoying edge case, so disabling for now") 
     def test_Rcon_rewrite_3(self):
         
         fst = assimilation([("a", "b"), ("x", "y")], ["_ x y z", "_ b b", " _ a"])
@@ -167,14 +163,14 @@ class TestAssimilation:
             ("a a a f a x y x y z x x y z a a x a", 
              "b b a f a x y x y z y x y z b a y a"),  
             
-            ("",
-             ""),
+            ("x x x a a a a b b x x x b b x a",
+             "x x y b b b b b b x x y b b y a"),
             
-            ("",
-             ""),
+            ("x a x a x x y z x x y z a x a a",
+             "y a y a y x y z y x y z a y b a"),
             
-            ("",
-             ""),
+            ("a b b b b x x b x x x a x y z",
+             "b b b b b x x b x x y b x y z"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
@@ -200,8 +196,7 @@ class TestAssimilation:
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym      
-        
-    @pytest.mark.skip(reason="Contains an annoying edge case, so disabling for now") 
+         
     def test_Dcon_rewrite_2(self):
         
         #! contains an issue where the right context prefix transition is sending too many symbols to output tape
