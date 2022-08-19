@@ -16,7 +16,6 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - tests
 - update displayparams
 - **Context / mapping conflict detector**
-- Remove `State` constructor
 
 
 ## Planned optimizations:
@@ -27,7 +26,6 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
     - Greatly improve and simplify transition generation
     
 
-
 ## Planned additions:
 **bold** = more important
 
@@ -36,10 +34,12 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - Lock user into using [XXX] tags (may be changed in the future to allow any tags)
 - Create a ReadtheDocs and move the docs there
 - Add a section to the ReadtheDocs or README for people who wish to contribute
-- **Make more intricate unit tests (check each transition to each other?) and add final function test to each transitions unit test**
-- Add a debug mode to `.rewrite` that will display each state the user's string transitions to. 
+- Make rewrite unit tests more intricate?
 - **Add a function for the user to be able to make their own custom delta instead of using rewrite rule format**
-
+- Remove `State` constructor
+- add disclaimers about graphing functionality:
+    - "Please note that graphing has only been tested on my Unix systems. I do not know if Windows plays nicely with graphviz (both graphing packages mentioned above use graphviz). I mention this because I've seen some threads that say certain functions in `Pydot` don't work on Windows. If there is an incompatibility, I currently have no plans to try and fix it, for I don't develop on Windows. However, if someone knows how to fix it and wants to open a pull request, you are more than welcome."
+- Probablty switch out `Pydot` for either `networkx` or `PyGraphviz`
 
 
 
@@ -55,8 +55,7 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - FST composition
 
 ## Known issues:
-- When specifying mulitple contexts and/or transductions, it is possible to input contexts and transductions that conflict with each other. I plan to implement a sanity check that tries to locate these issues. Also, there are some situations where a prefix transition output can inadvertently create a context for a transduction. Right now, my code only operates over the input, so the output string will contain symbols that look like they should have undergone a transduction.
-
+- When specifying mulitple contexts and/or transductions, it is possible to input contexts and transductions that conflict with each other. I plan to implement a sanity check that tries to locate these issues. 
 
 
 

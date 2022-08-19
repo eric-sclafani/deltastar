@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from utils.stringfunctions import PH, string_complement, despace
+from utils.funcs import PH, string_complement, despace
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 @dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
@@ -26,6 +26,8 @@ class State:
             return "".join([string[i] for i in range(start,stop,step)])
         else:
             return string[idx]
+
+
 
 @dataclass
 class Edge:
@@ -48,7 +50,6 @@ class RuleError(Exception):
     pass
  
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
-
 def parse_contexts(contexts):
    
     Lcons, Rcons, Dualcons = [],[],[]
@@ -71,6 +72,8 @@ def parse_contexts(contexts):
             
     return Lcons, Rcons, Dualcons
 
+
+
 def cf_transitions(insyms, outsyms,q0="λ"):
     
     # all CF transitions are self loops on initial state
@@ -80,6 +83,8 @@ def cf_transitions(insyms, outsyms,q0="λ"):
         
     t.append(Edge(State(q0),PH, PH, State(q0), ctype="cf"))
     return t
+    
+    
     
 def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
     
@@ -103,6 +108,8 @@ def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
             t.append(Edge(State(start), _in, _out, State(q0), ctype=ctype, is_transduction=True)) 
             t.append(Edge(State(start), PH, PH, State(q0),  ctype=ctype))   
     return t
+
+
 
 def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
    
@@ -158,6 +165,8 @@ def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
                 
     return t
 
+
+
 def Dcon_transitions(insyms, outsyms, contexts,q0="λ"):
 
     t = []
@@ -173,6 +182,8 @@ def Dcon_transitions(insyms, outsyms, contexts,q0="λ"):
        
         t.extend(dual_trans)  
     return t
+
+
 
 def prefix_transitions(context_trans, transduction_envs):
     
@@ -222,7 +233,7 @@ def prefix_transitions(context_trans, transduction_envs):
                         if ctype == "dual":
                             
                             if ppt.start.label != ppt.end.label:
-                                output = string_complement(ppt.start, lcon, pad="left") + " " + ppt.end.label 
+                                output = string_complement(ppt.start, lcon, pad="left") +  ppt.end.label 
                             
                         elif ctype == "right":
                             
@@ -251,34 +262,22 @@ def prefix_transitions(context_trans, transduction_envs):
                             
                             # transduction prefix transitions can get dicey. When ctype == right, need to subtract the end state from the output symbol
                             if ctype == "right":
-                                output = string_complement(match.outsym, ppt.end.label, pad="right") 
+                                output = string_complement(match.outsym, ppt.end.label, pad="right") + "λ"
                               
-                                
-                                
+                        
                             if ctype == "dual":
-                                output = match.outsym 
+                                output = match.outsym + "λ"
                                 
                                 
-                                
-                                
-                                
-                                
-                            output += "λ"
                         # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
                         if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
                             continue
                         
                         transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end, is_transduction=is_transduction))
         
-        # debugging code
-    #                 print(f"{last_seen_symbol = }")
-    #                 print(f"Proposed ppt: {ppt}")
-    #                 print(f"Matched trans: {matched_trans}\n")
-    
-    # print("Possible transitions being added:", *transitions_to_add, sep="\n")    
-    # print("\n")   
-        
     return transitions_to_add 
+
+
 
 def get_Q_sigma_gamma(trans):
     
@@ -291,6 +290,7 @@ def get_Q_sigma_gamma(trans):
     gamma = set(t.outsym for t in trans) 
     return Q, sigma, gamma 
 
+      
          
 def get_final_mappings(trans):
     
@@ -308,6 +308,8 @@ def get_final_mappings(trans):
             
             d[t.start] = output
     return d
+
+
 
 def get_transitions(insyms, outsyms, contexts=[], transduction_envs=[]):
     
@@ -327,6 +329,7 @@ def get_transitions(insyms, outsyms, contexts=[], transduction_envs=[]):
     
     return all_trans
 
+    
     
 def get_delta(trans):
     

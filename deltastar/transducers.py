@@ -1,12 +1,11 @@
-# -*- coding: utf8 -*-
-
+    # -*- coding: utf8 -*-
 
 # Eric Sclafani
 from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
-from utils.stringfunctions import PH, cfx, intersperse, despace
+from utils.funcs import PH, cfx, intersperse, despace
 from typing import List
 from tabulate import tabulate 
 
@@ -24,6 +23,8 @@ class DFST:
     v0:str = ""
     q0:str = tr.State("λ")
     
+    
+    #! remove nulls from insertion rules
     @property                    
     def displayparams(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
@@ -44,45 +45,44 @@ class DFST:
         
         print(tabulate(transitions, headers=["Start", "Insym", "Outsym", "End"], tablefmt="fancy_outline"))
     
-    #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~ BROKEN: NEEDS TO BE UPDATED ~~~~~~~~~~~~~~~~~~~~~~~~
-    def to_graph(self, file_name="my_machine.png", disable_PH=True):
+    
+    
+    def to_graph(self, file_name="my_machine.png", show_PH=False):
          
         if not file_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
         
-        graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR", size="6!")
+        graph = pydot.Dot("finite_state_machine", graph_type="digraph", rankdir="LR", size="10!")
         graph.add_node(pydot.Node("initial", shape="point", color="white"))
         
         i = 0
         for state, transitions in self.delta.items():
             for in_sym, out_trans in transitions.items():
                 
-                if disable_PH and in_sym == PH:
+                if not show_PH and in_sym == PH:
                     continue
                 
-                prev_state = state
-                next_state = out_trans[0]
+                start = state
+                end = out_trans[1]
                 
-                if prev_state == self.q0 and i == 0: # i enforces that this edge only gets created once
-                    graph.add_edge(pydot.Edge("initial", str(prev_state)))
+                if start == self.q0 and i == 0: # i enforces that this edge only gets created once
+                    graph.add_edge(pydot.Edge("initial", str(start)))
                 
-                #! broken
-                # # if we have right context transitions, states need to output themselves
-                # for final in self.finals:
-                #     if cfx(prev_state) == final[0]: 
-                #         prev_state = f"{prev_state}\,{final[1]}"
+                if self.finals[start]:
+                    start = f"{start}\,{self.finals[start]}"
                         
-                #     if cfx(next_state) == final[0]:
-                #         next_state = f"{next_state}\,{final[1]}"
+                if self.finals[end]:
+                    end = f"{end}\,{self.finals[end]}"
                           
-                graph.add_node(pydot.Node(str(prev_state), shape="doublecircle"))
-                graph.add_node(pydot.Node(str(next_state), shape="doublecircle"))
-                graph.add_edge(pydot.Edge(str(prev_state), str(next_state), label=f"{in_sym} : {out_trans[1]}"))
+                graph.add_node(pydot.Node(str(start), shape="doublecircle"))
+                graph.add_node(pydot.Node(str(end), shape="doublecircle"))
+                graph.add_edge(pydot.Edge(str(start), str(end), label=f"{in_sym}\:{out_trans[0]}"))
                 i += 1
                 
         graph.write_png(file_name)
     
-    # users need to input strings space delimited. This accounts for symbols having multiple characters (i.e. "[tns=past] v e r b [mod=imp] ")
+    
+    #! add a better debug mode
     def rewrite(self, s:str, show_path=False) -> str:
         
         path = []
@@ -121,6 +121,8 @@ class DFST:
         self.v0 = self.v0 + " " if self.v0 else ""
         return intersperse(self.v0 + output)
     
+    
+    
     @classmethod
     def from_rules(cls, insyms, outsyms, contexts=[], v0="", rule_type=""):
         assert len(insyms) == len(outsyms)
@@ -149,6 +151,7 @@ class DFST:
         return cls(delta, Q, sigma, gamma, finals, rules, v0=v0, rule_type=rule_type)
 
     
+    
 def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
     insyms, outsyms = [], []
@@ -161,6 +164,8 @@ def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
         
     return DFST.from_rules(insyms, outsyms, contexts, v0=v0, rule_type="assimilation")
     
+    
+    
 def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
     insyms, outsyms = [], []
@@ -172,6 +177,7 @@ def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
         outsyms.append("Ø")
         
     return DFST.from_rules(insyms, outsyms, contexts, v0=v0, rule_type="deletion")
+    
     
     
 def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
@@ -213,6 +219,7 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
 
 # test = assimilation([("a", "A"), ("h", "H")], ["x y z _ z y x"])
 # test.displayparams
+# test.to_graph()
 # print(test.rewrite("x y z h z y x"))
 
 
@@ -220,27 +227,23 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
 # test.displayparams
 # print(test.rewrite("x y z h z y x", to_list=True))
 
-# test = assimilation([("x", "y")], ["b a _ "])
+# test = assimilation([("x", "y"), ("f", "v")], ["b a _ ", "x y z _"])
 # test.displayparams
+# test.to_graph()
 # print(test.rewrite("b a x "))
 
-
-# fst = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
+# fst = assimilation([("a", "b")], ["_ x y z", "_ b b",])
 # fst.displayparams
-# print(fst.rewrite("a c a c b", show_path=True))
-
-# fst = assimilation([("a", "b"), ("x", "y")], ["_ x y z", "_ b b", " _ a"])
-# fst.displayparams
-
+# fst.to_graph()
 
 
 # ! was giving some issues (right context prefix transition)
-test = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
-test.displayparams
-print(test.rewrite("a c a c b", show_path=True))
+# test = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
+# test.displayparams
+# print(test.rewrite("a c a c b", show_path=True))
 
 
 
 
-
-
+fst = insertion([("", "p")], ["y _"])
+fst.displayparams
