@@ -9,6 +9,7 @@ from utils.funcs import PH, cfx, intersperse, despace
 from typing import List
 from tabulate import tabulate 
 
+RESERVED = ["$", "λ", "Ø"]
 
 @dataclass
 class DFST:
@@ -24,7 +25,8 @@ class DFST:
     q0:str = tr.State("λ")
     
     
-    #! remove nulls from insertion rules
+    #! remove nulls from insertion rules for displaying
+    #! simplify sigma and gamma
     @property                    
     def displayparams(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
@@ -32,8 +34,8 @@ class DFST:
         
         print(f"{'~'*7}Rewrite rules:{'~'*7}")
         print(*self.rules, sep="\n")
-        
         print("~"*28,"\n")
+        
         print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {cfx(self.q0.label)}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
         
         print(f"Delta:")
@@ -69,14 +71,14 @@ class DFST:
                     graph.add_edge(pydot.Edge("initial", str(start)))
                 
                 if self.finals[start]:
-                    start = f"{start}\,{self.finals[start]}"
+                    start = f"{start}\\,{self.finals[start]}"
                         
                 if self.finals[end]:
-                    end = f"{end}\,{self.finals[end]}"
+                    end = f"{end}\\,{self.finals[end]}"
                           
                 graph.add_node(pydot.Node(str(start), shape="doublecircle"))
                 graph.add_node(pydot.Node(str(end), shape="doublecircle"))
-                graph.add_edge(pydot.Edge(str(start), str(end), label=f"{in_sym}\:{out_trans[0]}"))
+                graph.add_edge(pydot.Edge(str(start), str(end), label=f"{in_sym}\\:{out_trans[0]}"))
                 i += 1
                 
         graph.write_png(file_name)
@@ -86,11 +88,12 @@ class DFST:
     def rewrite(self, s:str, show_path=False) -> str:
         
         path = []
+        out_tape = []
         output = ""
         state = self.q0 # begin at the initial state
         
         if self.rule_type == "insertion":
-            s = list("$ "+ "Ø" + intersperse(s.split()) + "Ø" + " $", "Ø")
+            s = list("[BOS] "+ "Ø" + intersperse(s.split()) + "Ø" + " [EOS]", "Ø")
         else:
             s = ("$ " + s + " $").split()
             
@@ -106,17 +109,17 @@ class DFST:
                 output += outsym.replace(PH, sym)
                 state = self.delta[state][PH][1]
                 path.append(state.label)
-              
+            out_tape.append(output)
+            
         output += self.finals[state]
+        out_tape.append(output)
         
-        placeholders = ["$", "λ", "Ø"]
-        for sym in placeholders:
+        for sym in RESERVED:
             output = output.replace(sym, "").strip()
             
         if show_path:
             print(f"\nInput string: {' '.join(s)}")
-            print("String path:")
-            print(" --> ".join(path))
+            print(f"String path: {' --> '.join(path)}\nOutput tape: {' --> '.join(out_tape)}")
         
         self.v0 = self.v0 + " " if self.v0 else ""
         return intersperse(self.v0 + output)
@@ -217,33 +220,9 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
         
     
 
-# test = assimilation([("a", "A"), ("h", "H")], ["x y z _ z y x"])
-# test.displayparams
-# test.to_graph()
-# print(test.rewrite("x y z h z y x"))
-
-
-# test = transducer([("c", "C")], ["c _ d a c"])
-# test.displayparams
-# print(test.rewrite("x y z h z y x", to_list=True))
-
-# test = assimilation([("x", "y"), ("f", "v")], ["b a _ ", "x y z _"])
-# test.displayparams
-# test.to_graph()
-# print(test.rewrite("b a x "))
-
-# fst = assimilation([("a", "b")], ["_ x y z", "_ b b",])
-# fst.displayparams
-# fst.to_graph()
-
-
-# ! was giving some issues (right context prefix transition)
-# test = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
-# test.displayparams
-# print(test.rewrite("a c a c b", show_path=True))
-
-
-
-
-fst = insertion([("", "p")], ["y _"])
+fst = assimilation([("a", "b"), ("b", "c")], ["$ b b _", "_ m m"])
 fst.displayparams
+print(fst.rewrite("b b a f f b m m", True))
+
+
+

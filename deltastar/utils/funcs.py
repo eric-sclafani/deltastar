@@ -42,7 +42,7 @@ def intersperse(string:str, delim=" "):
 def despace(string):
     return "".join([c for c in string if c != " "])
 
-def string_complement(s1, s2, pad):
+def string_complement(s1, s2, pad=None):
     """Performs the relative complement operation on two strings. """
     
     if pad == "right":

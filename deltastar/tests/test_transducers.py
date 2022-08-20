@@ -20,6 +20,7 @@ def get_syms(fst, in_out_pairs):
 
     Yields:
         sym1, sym2 (tuple[str]): symbols that fail the comparison
+        len(rewrite), len(expected_string) (tuple[int]): ensures that both strings are of equal length
     """
     for input_string, expected_string in in_out_pairs:
         rewrite = fst.rewrite(input_string).split()
@@ -199,88 +200,115 @@ class TestAssimilation:
          
     def test_Dcon_rewrite_2(self):
         
-        #! contains an issue where the right context prefix transition is sending too many symbols to output tape
-        
         fst = assimilation([("a", "X"), ("b", "Y")], ["a c _ c b"])
         
         in_out_pairs = [
-            ("a c a c b",
-             "a c X c b"),
+            ("a c a c b a a a a a c b c b a a a a c a c a c a c b b a c a c b c b",
+             "a c X c b a a a a a c Y c b a a a a c a c a c X c b b a c X c Y c b"),
             
-            ("",
-             ""),
+            ("a c a c a c b b b b a c b c b c b a c a c b",
+             "a c a c X c b b b b a c Y c b c b a c X c b"),
             
-            ("",
-             ""),
+            ("a c b c b a c a c b a c b c a c b c b",
+             "a c Y c b a c X c b a c b c a c Y c b"),
             
-            ("",
-             ""),
+            ("a a a c c c b b b c c c b b b [mod=imp] a c a c b",
+             "a a a c c c b b b c c c b b b [mod=imp] a c X c b"),
             
-            ("",
-             ""),
+            ("[this] [is] [a] [test] a c a c a c b [for] [tag] c b c b a c b c b [handling]",
+             "[this] [is] [a] [test] a c a c X c b [for] [tag] c b c b a c Y c b [handling]"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym 
       
             
-    @pytest.mark.skip(reason="Not Implemened Yet") 
     def test_Dcon_rewrite_3(self):
         
-        fst = assimilation([()], [])
+        fst = assimilation([("g", "G"), ("f", "F")], ["$ f g _ f y", "$ w _ p p", "b _ b"])
         
         in_out_pairs = [
-            ("",
-             ""),
+            ("f g g f y f g g f y f g f g w f p p b b b g b g b g b f b f b",
+             "f g G f y f g g f y f g f g w f p p b b b G b G b G b F b F b"),
             
-            ("",
-             ""),
+            ("b b b f b g f b b f g g f y [test]",
+             "b b b F b g f b b f g g f y [test]"),
             
-            ("",
-             ""),
+            ("w g p p g g f f f f f w f p p g f f f g f f y",
+             "w G p p g g f f f f f w f p p g f f f g f f y"),
             
-            ("",
-             ""),
+            ("w w w w g p p b b b b f b f f f b g b g g b b",
+             "w w w w g p p b b b b F b f f f b G b g g b b"),
             
-            ("",
-             ""),
+            ("f g g f y f y f g f f y",
+             "f g G f y f y f g f f y"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym 
     
-        
-    @pytest.mark.skip(reason="Not Implemened Yet") 
     def test_Mixedcon_rewrite_1(self):
         
-        fst = assimilation([()], [])
+        fst = assimilation([("a", "b"), ("b", "c")], ["$ b b _", " _ m m"])
         in_out_pairs = [
-            ("",""),
+            ("b b a f f b m m",
+             "b b b f f c m m"),
             
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
        
-        
-    @pytest.mark.skip(reason="Not Implemened Yet") 
+    @pytest.mark.skip(reason="Not Implemened Yet")  
     def test_Mixedcon_rewrite_2(self):
         
         fst = assimilation([()], [])
         in_out_pairs = [
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
             
-            ("",""),
+            ("",
+             ""),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
+            
+    @pytest.mark.skip(reason="Not Implemened Yet") 
+    def test_Mixedcon_rewrite_3(self):
+        
+        fst = assimilation([()], [])
+        in_out_pairs = [
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym

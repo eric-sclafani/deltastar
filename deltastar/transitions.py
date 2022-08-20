@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from utils.funcs import PH, string_complement, despace
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#! class due to be removed
 @dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
 class State:
     
@@ -191,6 +193,7 @@ def prefix_transitions(context_trans, transduction_envs):
     Q.remove(State("λ")) # remove λ state 
     sigma = list(sigma)
     sigma.remove(PH) # remove PH symbol from sigma since it doesnt have prefix transitions
+    finals = get_final_mappings(context_trans)
     transitions_to_add = []  
 
     for q in Q:
@@ -233,8 +236,13 @@ def prefix_transitions(context_trans, transduction_envs):
                         if ctype == "dual":
                             
                             if ppt.start.label != ppt.end.label:
-                                output = string_complement(ppt.start, lcon, pad="left") +  ppt.end.label 
-                            
+                                
+                                # check if the state doesn't have an output (i.e., if its left context)
+                                if not finals[ppt.end]:
+                                    output = string_complement(ppt.start, lcon, pad="left") +  ppt.end.label 
+                                else:
+                                    output = string_complement(ppt.start, lcon, pad="left") + "λ"
+                                
                         elif ctype == "right":
                             
                             # self loops should only get last_seen_symbol. Otherwise, concatenate state name with last_seen_symbol
@@ -250,8 +258,7 @@ def prefix_transitions(context_trans, transduction_envs):
                                     
                                     # checks to see if the prefix trans output also creates an environment for a transduction 
                                     if outsym.endswith(env) and outsym != env: 
-                                        output = output[:-1] + out_mapping
-                                        
+                                        output = output[:-1] + out_mapping    
                             output += "λ"
                                 
                         # this block handles the transduction transition, i.e., whether the transduction should point to a prefix state, or q0      
@@ -262,13 +269,18 @@ def prefix_transitions(context_trans, transduction_envs):
                             
                             # transduction prefix transitions can get dicey. When ctype == right, need to subtract the end state from the output symbol
                             if ctype == "right":
-                                output = string_complement(match.outsym, ppt.end.label, pad="right") + "λ"
+                                output = string_complement(match.outsym, ppt.end.label, pad="right") 
                               
-                        
                             if ctype == "dual":
-                                output = match.outsym + "λ"
+                                if finals[ppt.end]:
+                                    output = output[:-1]
                                 
                                 
+                            if ctype == "left":
+                                pass
+                                   
+                            output += "λ" # the lambda represents going into a state where you don't send a symbol to output tape  
+                                   
                         # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
                         if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
                             continue

@@ -30,16 +30,25 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 **bold** = more important
 
 - **Better (less confusing) naming schemes**
-- When overhauling graphs: default it to hide extra transitions
+
+- Add a filter that goes through the transitions and removes the ones where insym is a placeholder?
+
 - Lock user into using [XXX] tags (may be changed in the future to allow any tags)
+
 - Create a ReadtheDocs and move the docs there
+
 - Add a section to the ReadtheDocs or README for people who wish to contribute
+
+- Add a section to readme about OSL vs ISL and my code is strictly ISL (for now)
+
 - Make rewrite unit tests more intricate?
-- **Add a function for the user to be able to make their own custom delta instead of using rewrite rule format**
+
 - Remove `State` constructor
+
 - add disclaimers about graphing functionality:
     - "Please note that graphing has only been tested on my Unix systems. I do not know if Windows plays nicely with graphviz (both graphing packages mentioned above use graphviz). I mention this because I've seen some threads that say certain functions in `Pydot` don't work on Windows. If there is an incompatibility, I currently have no plans to try and fix it, for I don't develop on Windows. However, if someone knows how to fix it and wants to open a pull request, you are more than welcome."
-- Probablty switch out `Pydot` for either `networkx` or `PyGraphviz`
+
+- Probablty switch out `Pydot` for either `networkx` or `PyGraphviz` and generate an actual dot file instead of directly converting into a png
 
 
 
