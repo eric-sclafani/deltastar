@@ -93,7 +93,7 @@ class DFST:
         state = self.q0 # begin at the initial state
         
         if self.rule_type == "insertion":
-            s = list("[BOS] "+ "Ø" + intersperse(s.split()) + "Ø" + " [EOS]", "Ø")
+            s = list("$ "+ "Ø" + intersperse(s.split()) + "Ø" + " $", "Ø")
         else:
             s = ("$ " + s + " $").split()
             
@@ -218,11 +218,7 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
-    
 
-fst = assimilation([("a", "b"), ("b", "c")], ["$ b b _", "_ m m"])
-fst.displayparams
-print(fst.rewrite("b b a f f b m m", True))
 
 
 

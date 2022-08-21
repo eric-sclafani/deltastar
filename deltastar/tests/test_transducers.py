@@ -245,74 +245,7 @@ class TestAssimilation:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym 
     
-    def test_Mixedcon_rewrite_1(self):
-        
-        fst = assimilation([("a", "b"), ("b", "c")], ["$ b b _", " _ m m"])
-        in_out_pairs = [
-            ("b b a f f b m m",
-             "b b b f f c m m"),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-        ]
-        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
-            assert rewrite_sym == expected_sym
-       
-    @pytest.mark.skip(reason="Not Implemened Yet")  
-    def test_Mixedcon_rewrite_2(self):
-        
-        fst = assimilation([()], [])
-        in_out_pairs = [
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-        ]
-        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
-            assert rewrite_sym == expected_sym
-            
-    @pytest.mark.skip(reason="Not Implemened Yet") 
-    def test_Mixedcon_rewrite_3(self):
-        
-        fst = assimilation([()], [])
-        in_out_pairs = [
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-            
-            ("",
-             ""),
-        ]
-        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
-            assert rewrite_sym == expected_sym
-       
+   
     
 @pytest.mark.skip(reason="Not Implemened Yet")     
 class TestDeletion:
@@ -349,12 +282,6 @@ class TestDeletion:
     def test_Dcon_rewrite_2(self):
         pass
     
-    def test_Mixedcon_rewrite_1(self):
-        pass
-    
-    def test_Mixedcon_rewrite_2(self):
-        pass
-
 @pytest.mark.skip(reason="Not Implemened Yet") 
 class TestInsertion:
     
@@ -374,12 +301,6 @@ class TestInsertion:
         pass
     
     def test_Dcon_rewrite_2(self):
-        pass
-    
-    def test_Mixedcon_rewrite_1(self):
-        pass
-    
-    def test_Mixedcon_rewrite_2(self):
         pass
     
 

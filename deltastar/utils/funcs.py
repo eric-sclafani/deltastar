@@ -15,7 +15,6 @@ def intersperse(string:str, delim=" "):
     """
     output = ""
     i = 0
-    
     while True:
         try:
             temp = string[i]
@@ -35,8 +34,6 @@ def intersperse(string:str, delim=" "):
         else:     
             output += delim + string[i]
         i += 1
-   
-    
     return output.strip(delim)
 
 def despace(string):
@@ -55,3 +52,7 @@ def string_complement(s1, s2, pad=None):
         if s != s2[i]:
             output += s
     return output
+
+def check_context(contexts):
+    
+    
