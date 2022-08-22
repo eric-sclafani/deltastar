@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
-from utils.funcs import PH, cfx, intersperse, despace
+from utils.funcs import PH, cfx, intersperse, RuleError, validate_context
 from typing import List
 from tabulate import tabulate 
 
@@ -157,10 +157,13 @@ class DFST:
     
 def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
+    if contexts:
+        validate_context(contexts)
+    
     insyms, outsyms = [], []
     for insym, outsym in pairs:
         if not insym or not outsym:
-            raise tr.RuleError(f"Invalid pair {insym, outsym}")
+            raise RuleError(f"Invalid pair {insym, outsym}")
 
         insyms.append(insym)
         outsyms.append(outsym)
@@ -171,10 +174,13 @@ def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
 def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
+    if contexts:
+        validate_context(contexts)
+    
     insyms, outsyms = [], []
     for insym, outsym in pairs:
         if not insym or outsym:
-            raise tr.RuleError(f"Invalid pair {insym, outsym}")
+            raise RuleError(f"Invalid pair {insym, outsym}")
 
         insyms.append(insym)
         outsyms.append("Ø")
@@ -185,10 +191,13 @@ def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
 def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
+    if contexts:
+        validate_context(contexts)
+    
     insyms, outsyms = [], []
     for insym, outsym in pairs:
         if insym or not outsym:
-            raise tr.RuleError(f"Invalid pair {insym, outsym}")
+            raise RuleError(f"Invalid pair {insym, outsym}")
 
         insyms.append("Ø")
         outsyms.append(outsym)

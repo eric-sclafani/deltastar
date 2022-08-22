@@ -44,24 +44,12 @@ class Edge:
     
     def __repr__(self):
         return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"   
-    
-class ContextError(Exception):
-    pass
 
-class RuleError(Exception):
-    pass
- 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 def parse_contexts(contexts):
    
     Lcons, Rcons, Dualcons = [],[],[]
     for con in contexts:
-        
-        if not isinstance(con, str):
-            raise ContextError(f"{con} must be of type 'str'")
-        elif "_" not in con:
-            raise ContextError(f"{con} not recognized: context must be specified as X _, _ X, or X _ X, where X = contextual symbol(s)")
-    
         con = tuple(con.split())
         
         # this block sorts contexts into their respective lists

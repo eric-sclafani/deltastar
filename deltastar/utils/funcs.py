@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+    
+class ContextError(Exception):
+    pass
+
+class RuleError(Exception):
+    pass
+
+
+
 PH = "?" 
 cfx = lambda string: f"<{string}>" 
 
@@ -40,7 +49,7 @@ def despace(string):
     return "".join([c for c in string if c != " "])
 
 def string_complement(s1, s2, pad=None):
-    """Performs the relative complement operation on two strings. """
+    """Performs the relative complement operation on two strings."""
     
     if pad == "right":
         s2 = s2.rjust(len(s1), " ")
@@ -53,6 +62,25 @@ def string_complement(s1, s2, pad=None):
             output += s
     return output
 
-def check_context(contexts):
+def validate_context(contexts):
     
+    to_check = []
+    for con in contexts:
+        con = con.strip()
+        if not isinstance(con, str):
+            raise ContextError(f"{con} must be of type 'str'")
+        elif "_" not in con:
+            raise ContextError(f"{con} not recognized: context must be specified as X _, _ X, or X _ X, where X = contextual symbol(s)")
+        
+        if con[-1] == "_":
+            to_check.append("L")
+        elif con[0] == "_":
+            to_check.append("R")
+        else:
+            to_check.append("D")
+            
+    verdict = all(map(lambda x: x == to_check[0], to_check))
+    
+    if not verdict:
+        raise ContextError("Context type must be homogenous.")
     
