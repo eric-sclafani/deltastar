@@ -417,46 +417,45 @@ class TestDeletion:
     
     def test_Dcon_rewrite_2(self):
         
-        fst = deletion([("[WOW]", ""), ("p", ""), ("i", "")], ["i i _ i i"])
+        fst = deletion([("[WOW]", ""), ("p", ""), ("i", "")], ["a e _ i o u", "x y _ y z", "p _ r", "$ _ y y y"])
         in_out_pairs = [
-            ("i i i i i i i",
-             "i i i i"),
+            ("a a a e [WOW] i o u p o p s t p p r x y x x x y x y i y z z",
+             "a a a e i o u p o p s t p r x y x x x y x y y z z"),
             
-            ("",
-             ""), 
+            ("x y x y x y i a e [WOW] i o u u u x y x y p y z",
+             "x y x y x y i a e i o u u u x y x y y z"), 
             
-            ("",
-             ""),
+            ("p p p p p r p r p r p p r a e e a e i i o u i o u",
+             "p p p p r p r p r p r a e e a e i o u i o u"),
             
-            ("",
-             ""),
+            ("p y y y p y y y a e a e a e [WOW] i o u p r x y x y y y x y i y z",
+             "y y y p y y y a e a e a e i o u p r x y x y y y x y y z"),
             
-            ("",
-             ""),
+            ("i i i y y y y x y p x y i y z a e [WOW] i o q",
+             "i i i y y y y x y p x y y z a e [WOW] i o q"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
             
             
-    @pytest.mark.skip(reason="Not Implemened Yet")
     def test_Dcon_rewrite_3(self):
         
-        fst = deletion([()], [])
+        fst = deletion([("b", ""), ("v", ""), ("c", "")], ["$ b _ b a b", "c d _ d c $", "[TAG1] _ [TAG2]", "f v _ f v", "p p _ $"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("b b b a b b b v b f v v f v v f v [TAG1] b [TAG2] c d v d c",
+             "b b a b b b v b f v f v f v [TAG1] [TAG2] c d d c"),
             
-            ("",
-             ""),
+            ("c d c d c [TAG1] [TAG1] [TAG2] f f f v c f v v v f p p p p v",
+             "c d c d c [TAG1] [TAG1] [TAG2] f f f v f v v v f p p p p"),
             
-            ("",
-             ""),
+            ("b v b a a f v h j l [TAG1] [TAG1] c [TAG2] p p p p p c g",
+             "b v b a a f v h j l [TAG1] [TAG1] [TAG2] p p p p p c g"),
             
-            ("",
-             ""),
+            ("b c b a b b b c b a b c d v v d c d c d b d c",
+             "b b a b b b c b a b c d v v d c d c d d c"),
             
-            ("",
-             ""),
+            ("c c c c c c c d c d c",
+             "c c c c c c c d d c"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym

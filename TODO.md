@@ -16,7 +16,6 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - tests
 - update displayparams
 - **Context / mapping conflict detector**
-- for each instantiation, can only be one type of context
 
 
 ## Planned optimizations for next major version:
@@ -28,6 +27,7 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
     - Greatly improve and simplify transition generation
         - this especially includes prefix transitions
     - Improve how word boundary symbols are handled
+- Pynini interaction!!
 
 ## Planned additions:
 **bold** = more important
@@ -51,7 +51,7 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - add disclaimers about graphing functionality:
     - "Please note that graphing has only been tested on my Unix systems. I do not know if Windows plays nicely with graphviz (both graphing packages mentioned above use graphviz). I mention this because I've seen some threads that say certain functions in `Pydot` don't work on Windows. If there is an incompatibility, I currently have no plans to try and fix it, for I don't develop on Windows. However, if someone knows how to fix it and wants to open a pull request, you are more than welcome."
 
-- Probablty switch out `Pydot` for either `networkx` or `PyGraphviz` and generate an actual dot file instead of directly converting into a png
+- Probablty switch out `Pydot` for either `networkx` or `PyGraphviz` and generate an actual dot file instead of directly converting into a png (Pydot seems to be deprecated, so I might want to switch to a more maintained package)
 
 
 
@@ -63,11 +63,10 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - two-way transducers
 - get rid of dict structure and use a custom class for delta
 - make class for types of rewrite rules?
-- ACCEPTORS!!!
-- FST composition
 
 ## Known issues:
 - When specifying mulitple contexts and/or transductions, it is possible to input contexts and transductions that conflict with each other. I plan to implement a sanity check that tries to locate these issues. 
 
+Remember to mention graphviz is needed for installation!!
 
 

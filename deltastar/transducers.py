@@ -229,6 +229,6 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
         
 
 
-fst = deletion([("i", "")], ["i i _ i i"])
-fst.displayparams
-print(fst.rewrite("i i i i i", show_path=True))
+# fst = deletion([("i", "")], ["i i _ i i"])
+# fst.displayparams
+# print(fst.rewrite("i i i i i", show_path=True))
