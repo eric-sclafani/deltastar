@@ -38,6 +38,7 @@ def get_syms(fst, in_out_pairs):
                 print(report)
                 yield sym1, sym2
 
+
 class TestAssimilation:
     
     def test_Lcon_rewrite_1(self):
@@ -109,6 +110,7 @@ class TestAssimilation:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
    
+   
     def test_Rcon_rewrite_1(self):
         
         fst = assimilation([("a", "b")], ["_ a b a b"])
@@ -130,6 +132,7 @@ class TestAssimilation:
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
+    
     
     def test_Rcon_rewrite_2(self):
         
@@ -154,6 +157,7 @@ class TestAssimilation:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
+    
     def test_Rcon_rewrite_3(self):
         
         fst = assimilation([("a", "b"), ("x", "y")], ["_ x y z", "_ b b", " _ a"])
@@ -176,6 +180,7 @@ class TestAssimilation:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
             
+            
     def test_Dcon_rewrite_1(self):
         
         fst = assimilation([("a", "A"), ("h", "H")], ["x y z _ z y x"])
@@ -197,6 +202,7 @@ class TestAssimilation:
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym      
+         
          
     def test_Dcon_rewrite_2(self):
         
@@ -246,12 +252,11 @@ class TestAssimilation:
             assert rewrite_sym == expected_sym 
     
    
-        
 class TestDeletion:
     
     def test_Lcon_rewrite_1(self):
         
-        fst = deletion([("a", ""), ("x", ""), ("[TEST]", "")], ["b _", "p p p _", "x y z _"])
+        fst = deletion([("a", ""), ("x", ""), ("[TEST]", ""), ("c", "")], ["b _", "p p p _", "x y z _", "g g a _"])
         in_out_pairs = [
             ("b a b a p p p p p a x y x y x y z x b b p p b b a p p p x",
              "b b p p p p p x y x y x y z b b p p b b p p p"),
@@ -259,51 +264,94 @@ class TestDeletion:
             ("b b b [TEST] p b p b p p p x b x y z x y z a",
              "b b b p b p b p p p b y z y z"),
             
-            ("",
-             ""),
+            ("b p b p x y z x y z [TEST] p p p a b [TEST] p p p [TEST] x y z x y z a",
+             "b p b p x y z y z p p p b p p p x y z y z"),
             
-            ("",
-             ""),
+            ("x x x y z b a g g g g a x y z g g a x y z [TEST] p p p p x x y z x",
+             "x x x y z b g g g g a y z g g a y z p p p p x y z"),
             
-            ("",
-             ""),
+            ("c a c a b c a g g g a c [TEST] b [TEST] x y z x y z g g a c x y z c",
+             "c a c a b a g g g a [TEST] b x y z y z g g a x y z"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
     
-    @pytest.mark.skip(reason="Not Implemened Yet")
     def test_Lcon_rewrite_2(self):
         
-        fst = deletion([()], [])
+        fst = deletion([("g", ""), ("t", ""), ("p", "")], ["a b c _", "g t p _", "t h e _", "p o w _"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("g t p g t p a a a a b c p t t h h e e t h e g t g g g t p p t t g t p g",
+             "g t p t p a a a a b c t t h h e e t h e t g g g t p t t g t p"),
             
-            ("",
-             ""),
+            ("a b a b a b c t t t h e g t p a b c t g t p o w t",
+             "a b a b a b c t t h e t p a b c g t p o w"),
             
-            ("",
-             ""),
+            ("p p o w g t p p g t p g t p t a a b c g t p t h e p o w g",
+             "p p o w t p g t p t p a a b c t p h e o w"),
             
-            ("",
-             ""),
+            ("g g g t p g g g t a b c t h h e p o w w p t h e g t a b a b c c g a b c t",
+             "g g g t p g g t a b c h h e p o w w p t h e t a b a b c c g a b c"),
             
-            ("",
-             ""),
+            ("t t t h e p o w p o w a a b c g t p p",
+             "t t t h e o w o w a a b c t p"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
             
-            
-            
-    @pytest.mark.skip(reason="Not Implemened Yet")        
+                  
     def test_Lcon_rewrite_3(self):
         
-        fst = deletion([()], [])
+        fst = deletion([("[HELLO]", ""), ("s", ""), ("[TAG]", "")], ["$ d u d e _", "t o a s t _", "s s s _", "y x y _"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("s s [HELLO] s [TAG] t t s s t o a s t s s s s s s [TAG] t o o t o a s t [HELLO]",
+             "s s [HELLO] s [TAG] t t s s t o a s t s s t o o t o a s t"),
+            
+            ("d u d e [TAG] d u d e [HELLO] a a a t t o a s t t o a s t s",
+             "d u d e d u d e [HELLO] a a a t t o a s t t o a s t"),
+            
+            ("s t o a s t [HELLO] [TAG] s s s s s s s s [TAG] d u d u d e t o a s t s",
+             "s t o a s t [TAG] s s s d u d u d e t o a s t"),
+            
+            ("y y x y [HELLO] [HELLO] s d u d e s t o a t o a s t s a s t [TAG] s s s y x y x x y x y s",
+             "y y x y [HELLO] s d u d e s t o a t o a s t a s t [TAG] s s s y x y x x y x y"),
+            
+            ("d d u d e s s s [TAG] s [HELLO] y y y y x y [TAG]",
+             "d d u d e s s s s [HELLO] y y y y x y"),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
+            
+            
+    def test_Rcon_rewrite_1(self):
+        
+        fst = deletion([("[JEFF]", ""), ("[SCOTT]", ""), ("w", ""), ("a", "")], ["_ c c c", "_ w y z", "_ p p"])
+        in_out_pairs = [
+            ("[JEFF] c c w y y y w w [SCOTT] p p w w y w w y z [JEFF] c c c",
+             "[JEFF] c c w y y y w w p p w w y w y z c c c"),
+            
+            ("w w w w w p p a p [JEFF] c c a p [SCOTT] [SCOTT] c c c c c c w w y c c c a p p",
+             "w w w w p p a p [JEFF] c c a p [SCOTT] c c c c c c w w y c c c p p"),
+            
+            ("w w w c c c w w y z [SCOTT] p a c c c w y z",
+             "w w c c c w y z [SCOTT] p c c c w y z"),
+            
+            ("[JEFF] c c c [SCOTT] p p w w w y z p p a p p",
+             "c c c p p w w y z p p p p"),
+            
+            ("c c c c w w y w y z w c c c [SCOTT] [JEFF] p p w w y w c c c",
+             "c c c c w w y w y z c c c [SCOTT] p p w w y c c c"),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
+    
+    
+    def test_Rcon_rewrite_2(self):
+        
+        fst = deletion([("x", ""), ("y", ""), ("z", "")], ["_ y a y $"])
+        in_out_pairs = [
+            ("x y a y x y a y",
+             "y a y x y a y"),
             
             ("",
              ""),
@@ -319,26 +367,54 @@ class TestDeletion:
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
-            
-            
-    @pytest.mark.skip(reason="Not Implemened Yet")
-    def test_Rcon_rewrite_1(self):
-        pass
-    
-    
-    @pytest.mark.skip(reason="Not Implemened Yet")
-    def test_Rcon_rewrite_2(self):
-        pass
     
     
     @pytest.mark.skip(reason="Not Implemened Yet")
     def test_Dcon_rewrite_1(self):
-        pass
+        
+        fst = deletion([()], [])
+        in_out_pairs = [
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
     
     
     @pytest.mark.skip(reason="Not Implemened Yet")
     def test_Dcon_rewrite_2(self):
-        pass
+        
+        fst = deletion([()], [])
+        in_out_pairs = [
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+            
+            ("",
+             ""),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
     
 @pytest.mark.skip(reason="Not Implemened Yet") 
 class TestInsertion:

@@ -44,7 +44,7 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 
 - Add a section to readme about OSL vs ISL and my code is strictly ISL (for now)
 
-- Make rewrite unit tests more intricate?
+- Make rewrite unit tests more intricate and also add tests involving a folding of FSTs (output of one machine is the input of another)
 
 - Remove `State` constructor
 

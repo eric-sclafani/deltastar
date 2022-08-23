@@ -227,7 +227,5 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
-
-
-
-
+fst = deletion([("x", ""), ("y", ""), ("z", "")], ["_ y a y $"])
+fst.displayparamsprint(fst.rewrite("x y a y x y a y"))
