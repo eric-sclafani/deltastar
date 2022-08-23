@@ -262,7 +262,11 @@ def prefix_transitions(context_trans, transduction_envs):
                             if ctype == "dual":
                                 if finals[ppt.end]:
                                     output = output[:-1]
-                                
+                                    
+                                    #! possibly volatile conditional
+                                    # edge case: self loop on transduction transition and last symbol of output matches the last symbol seen
+                                    if output[-1] == ppt.end.label[-1]:
+                                        output = output[0]
                                 
                             if ctype == "left":
                                 pass

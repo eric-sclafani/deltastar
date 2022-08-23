@@ -1,7 +1,7 @@
 import pytest
 import sys
 
-# technically not needed, but this lets me run the files through cmd if needed
+# technically not needed, but this lets me run the files through cmd 
 sys.path.append("/home/eric/python/projects/deltastar/") 
 sys.path.append("/home/eric/python/projects/deltastar/deltastar")
 
@@ -348,37 +348,82 @@ class TestDeletion:
     
     def test_Rcon_rewrite_2(self):
         
-        fst = deletion([("x", ""), ("y", ""), ("z", "")], ["_ y a y $"])
+        fst = deletion([("x", ""), ("y", ""), ("z", "")], ["_ y a y $", "_ x y z", "_ x x x y"])
         in_out_pairs = [
-            ("x y a y x y a y",
-             "y a y x y a y"),
+            ("x y a y x x x y x y z z x x y x x x y x y z z y a y",
+             "x y a x x x x y z z x x x x x x y z y a y"),
             
-            ("",
-             ""),
+            ("z z z x y z x x x y y y y a y x y z x x x x y z y a y",
+             "z z x y  x x x y y y y a x y z x x y y a y"),
             
-            ("",
-             ""),
+            ("x x y y z z x x y z z y a y x y z x y z x x x y",
+             "x x y y z z x y z z y a x y x y x x x y"),
             
-            ("",
-             ""),
+            ("x x x x x x y x y z y a y",
+             "x x x x x x y y a y"),
             
-            ("",
-             ""),
+            ("y z y z x z y x y z x x x y x y x y z",
+             "y z y z x z x y x x x y x x y z"),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
+            
+        
+    def test_Rcon_rewrite_3(self):
+        
+        fst = deletion([("f", ""), ("c", "")], ["_ c c c $", "_ p f a $", "_ o f", "_ o o p"])
+        in_out_pairs = [
+            ("c c c c c c c f f f o f c o f p f a c p f a",
+             "c c c c c c c f f o f o f p f a p f a"),
+            
+            ("p f p f c o f o f c c c c c c",
+             "p f p f o o f c c c c c"),
+            
+            ("o o o f o o p c c c c f o f o c o o p f o f c c c c",
+             "o o o o o p c c c c o f o o o p o f c c c"),
+            
+            ("o f o p c c p f a o f o o o p c p f a",
+             "o f o p c c p f a o f o o o p p f a"),
+            
+            ("p f p f o f c p c a o f c o f o o p c c c c",
+             "p f p o f c p c a o f o o o p c c c"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
     
-    @pytest.mark.skip(reason="Not Implemened Yet")
     def test_Dcon_rewrite_1(self):
         
-        fst = deletion([()], [])
+        fst = deletion([("u", ""), ("t", ""), ("e", "")], ["d _ d", "d _ t", "u _ e"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("d d d t t u u e d u d u t u t e u e e",
+             "d d d t u e d d t u e u e"),
+            
+            ("u d t u t e e d e d t t u d e d d e t t",
+             "u d t u e e d d t u d d d t t"),
+            
+            ("u u u u u t e u t u t d e d e t u d u d e",
+             "u u u u u e u t u t d d t u d d e"),
+            
+            ("d e d e t e u u e u u u t e",
+             "d d t e u e u u u e"),
+            
+            ("e e u e e t e t e d e d e t u u t d u t",
+             "e e u e t e t e d d t u u t d t"),
+        ]
+        for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+            assert rewrite_sym == expected_sym
+    
+    
+    def test_Dcon_rewrite_2(self):
+        
+        fst = deletion([("[WOW]", ""), ("p", ""), ("i", "")], ["i i _ i i"])
+        in_out_pairs = [
+            ("i i i i i i i",
+             "i i i i"),
             
             ("",
-             ""),
+             ""), 
             
             ("",
              ""),
@@ -391,10 +436,10 @@ class TestDeletion:
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
-    
-    
+            
+            
     @pytest.mark.skip(reason="Not Implemened Yet")
-    def test_Dcon_rewrite_2(self):
+    def test_Dcon_rewrite_3(self):
         
         fst = deletion([()], [])
         in_out_pairs = [
@@ -415,6 +460,7 @@ class TestDeletion:
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
+    
     
 @pytest.mark.skip(reason="Not Implemened Yet") 
 class TestInsertion:
@@ -436,5 +482,30 @@ class TestInsertion:
     
     def test_Dcon_rewrite_2(self):
         pass
+    
+    
+    #! template code
+    # @pytest.mark.skip(reason="Not Implemened Yet")
+    # def test_(self):
+        
+    #     fst = ([()], [])
+    #     in_out_pairs = [
+    #         ("",
+    #          ""),
+            
+    #         ("",
+    #          ""),
+            
+    #         ("",
+    #          ""),
+            
+    #         ("",
+    #          ""),
+            
+    #         ("",
+    #          ""),
+    #     ]
+    #     for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
+    #         assert rewrite_sym == expected_sym
     
 
