@@ -534,10 +534,10 @@ class TestInsertion:
     @pytest.mark.skip(reason="Not Implemened Yet")
     def test_Rcon_rewrite_1(self):
         
-        fst = insertion([()], [])
+        fst = insertion([("", "s")], ["_ s s s", ""])
         in_out_pairs = [
-            ("",
-             ""),
+            ("s s s s",
+             "s s s s s s"),
             
             ("",
              ""),
@@ -647,7 +647,7 @@ class TestInsertion:
             assert rewrite_sym == expected_sym
             
     @pytest.mark.skip(reason="Not Implemened Yet")
-    def test_Dcon_rewrite_2(self):
+    def test_Dcon_rewrite_3(self):
         
         fst = insertion([()], [])
         in_out_pairs = [

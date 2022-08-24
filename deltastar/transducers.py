@@ -36,10 +36,17 @@ class DFST:
         print(*self.rules, sep="\n")
         print("~"*28,"\n")
         
-        print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {cfx(self.q0.label)}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
+        #print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {cfx(self.q0.label)}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
+        
+        for sym in self.sigma:
+            if sym in RESERVED:
+                
+        
+        
+        
+        
         
         print(f"Delta:")
-        
         transitions = []
         for state, trans in sorted(self.delta.items(), key=lambda x: x =="<λ>"): # key makes sure initial state transitions are first
             for s, t in trans.items():
@@ -233,11 +240,6 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
-
-fst = insertion([("","a")], ["a b c _", "p o p _", "$ l l o _"])
+        
+fst = insertion([("", "a")], ["x y _"])
 fst.displayparams
-print(fst.rewrite("l l o", show_path=True))
-
-
-# fst = insertion([("","a")], ["l o _ $"])
-# fst.displayparams
