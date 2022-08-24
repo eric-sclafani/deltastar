@@ -162,9 +162,9 @@ def Dcon_transitions(insyms, outsyms, contexts,q0="λ"):
     t = []
  
     for context in contexts:
-        hyphen = context.index("_")
-        left_context = [context[:hyphen]]
-        right_context = [context[hyphen+1:]]
+        underscore = context.index("_")
+        left_context = [context[:underscore]]
+        right_context = [context[underscore+1:]]
         
         left_trans = [con for con in Lcon_transitions(insyms, outsyms, left_context, q0, dual=True) if not con.is_transduction] # filter out transduction transitions
         right_trans = Rcon_transitions(insyms, outsyms, right_context, Lcon=left_context, dual=True)

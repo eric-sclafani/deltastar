@@ -16,6 +16,7 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 - tests
 - update displayparams
 - **Context / mapping conflict detector**
+- examples/demos
 
 
 ## Planned optimizations for next major version:
@@ -42,8 +43,6 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 
 - Add a section to the ReadtheDocs or README for people who wish to contribute
 
-- Add a section to readme about OSL vs ISL and my code is strictly ISL (for now)
-
 - Make rewrite unit tests more intricate and also add tests involving a folding of FSTs (output of one machine is the input of another)
 
 - Remove `State` constructor
@@ -53,10 +52,11 @@ https://web.archive.org/web/20201214181824/https://www.jeffknupp.com/blog/2013/0
 
 - Probablty switch out `Pydot` for either `networkx` or `PyGraphviz` and generate an actual dot file instead of directly converting into a png (Pydot seems to be deprecated, so I might want to switch to a more maintained package)
 
+- simutaneous application, left-to-right, right-to-left
 
 
-## Possible additions or random ideas:
-- ISL / OSL toggle (this would *heavily* affect the prefix transitions)
+
+## Possible additions or random ideas: 
 - Monoid stuff
 - weighted FSTs
 - non-deterministic FSTs

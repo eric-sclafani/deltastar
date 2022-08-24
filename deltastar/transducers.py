@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import pydot
 import transitions as tr
-from utils.funcs import PH, cfx, intersperse, RuleError, validate_context
+from utils.funcs import *
 from typing import List
 from tabulate import tabulate 
 
@@ -93,7 +93,7 @@ class DFST:
         state = self.q0 # begin at the initial state
         
         if self.rule_type == "insertion":
-            s = list("$ "+ "Ø" + intersperse(s.split()) + "Ø" + " $", "Ø")
+            s = list("$"+ "Ø" + intersperse(s.split(), "Ø") + "Ø" + "$")
         else:
             s = ("$ " + s + " $").split()
             
@@ -194,6 +194,9 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     if contexts:
         validate_context(contexts)
     
+    if len(pairs) != 1:
+        raise ValueError("Insertion rules can only take one mapping at a time")
+        
     insyms, outsyms = [], []
     for insym, outsym in pairs:
         if insym or not outsym:
@@ -205,17 +208,19 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     contexts_insertion = []
     apply_intersperse = lambda string : intersperse(string.split(), "Ø")
     for context in contexts:
-        hyphen = context.index("_")
+        underscore = context.index("_")
         
-        if hyphen == len(context)-1: # left context
-            context = context[:hyphen]
+        if underscore == len(context)-1: # left context
+            context = context[:underscore]
             new_context = list("Ø" + apply_intersperse(context))
-            contexts_insertion.append(" ".join(new_context) + " _")
+            new_context = validate_insertion_context(" ".join(new_context) + " _")
+            contexts_insertion.append(new_context)
 
-        elif hyphen == 0: # right context
-            context = context[hyphen+1:]
+        elif underscore == 0: # right context
+            context = context[underscore+1:]
             new_context = list(apply_intersperse(context))
-            contexts_insertion.append("_ " + " ".join(new_context))
+            new_context = validate_insertion_context("_ " + " ".join(new_context))
+            contexts_insertion.append(new_context)
 
         else: # dual context
             left, right = context.split("_")
@@ -223,12 +228,16 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             right = list(apply_intersperse(right) + "Ø")
             
             dual = " ".join(left) + " _ " + " ".join(right)
+            dual = validate_insertion_context(dual)
             contexts_insertion.append(dual)
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
 
+fst = insertion([("","a")], ["a b c _", "p o p _", "$ l l o _"])
+fst.displayparams
+print(fst.rewrite("l l o", show_path=True))
 
-# fst = deletion([("i", "")], ["i i _ i i"])
+
+# fst = insertion([("","a")], ["l o _ $"])
 # fst.displayparams
-# print(fst.rewrite("i i i i i", show_path=True))

@@ -8,7 +8,6 @@ class RuleError(Exception):
     pass
 
 
-
 PH = "?" 
 cfx = lambda string: f"<{string}>" 
 
@@ -30,19 +29,20 @@ def intersperse(string:str, delim=" "):
         except IndexError:
             break
         
-        if temp == "[":
+        if temp == "[": # if "[" is detected, every symbol leading up to "]" is included in the tag
             j = 0
             for char in string[i+1:]:
                 j += 1
                 temp += char
                 if char == "]":
                     break
-            i += j
+            i += j # update i index to whatever is after the tag
                     
             output += delim + temp
         else:     
             output += delim + string[i]
         i += 1
+    
     return output.strip(delim)
 
 def despace(string):
@@ -84,3 +84,13 @@ def validate_context(contexts):
     if not verdict:
         raise ContextError("Context type must be homogenous.")
     
+
+def validate_insertion_context(context):
+    """Hard coded check to see if an insertion context contains an incorrect symbol sequence"""
+    if context.startswith("Ø $"):
+        context = context[2:]
+
+    if context.endswith("$ Ø"):
+        context = context[:-2]
+    
+    return context
