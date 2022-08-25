@@ -600,78 +600,71 @@ class TestInsertion:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
-    @pytest.mark.skip(reason="Not Implemened Yet")
+    
     def test_Dcon_rewrite_1(self):
         
-        fst = insertion([("", "[tns=pst]")], ["e d _ $"])
+        fst = insertion([("", "[tns=pst]")], ["e d _ $", "p o p _ p o p", "x y z _ x y z"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("v e r b e d",
+             "v e r b e d [tns=pst]"),
             
-            ("",
-             ""),
+            ("v e r b e d p p p o p p o p",
+             "v e r b e d p p p o p [tns=pst] p o p"),
             
-            ("",
-             ""),
+            ("x x x x y z x y z p o p p o p e d",
+             "x x x x y z [tns=pst] x y z p o p [tns=pst] p o p e d [tns=pst]"),
             
-            ("",
-             ""),
+            ("x y x y x y z p o p p o p p o p",
+             "x y x y x y z p o p [tns=pst] p o p [tns=pst] p o p"),
             
-            ("",
-             ""),
+            ("[tns=pst] x y z x y z p p o p p o p p e d",
+             "[tns=pst] x y z [tns=pst] x y z p p o p [tns=pst] p o p p e d [tns=pst]"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
             
-    @pytest.mark.skip(reason="Not Implemened Yet")
+    
     def test_Dcon_rewrite_2(self):
         
-        fst = insertion([()], [])
+        fst = insertion([("", "t")], ["g _ t", "$ _ b", "$ m o _ h", "r o _ o r", "j _ k $"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("b g g g g g t r r r f g r o o r",
+             "t b g g g g g t t r r r f g r o t o r"),
             
-            ("",
-             ""),
+            ("m o h g g g t g t b r o r o m o h",
+             "m o t h g g g t t g t t b r o r o m o h"),
             
-            ("",
-             ""),
+            ("m m m o m o h g t g t g g g t t t j k j k j k",
+             "m m m o m o h g t t g t t g g g t t t t j k j k j t k"),
             
-            ("",
-             ""),
+            ("b b b b r o o r o o r j k",
+             "t b b b b r o t o r o t o r j t k"),
             
-            ("",
-             ""),
+            ("m o h h h r o r r o o r j t k t t k g t",
+             "m o t h h h r o r r o t o r j t k t t k g t t"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
             
-    @pytest.mark.skip(reason="Not Implemened Yet")
+
     def test_Dcon_rewrite_3(self):
         
-        fst = insertion([()], [])
+        fst = insertion([("", "m")], ["m o p _ p $", "o _ o", "t y _ y t", "r r r _ r $", "$ d d _ p p"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("m m m m m o p p",
+             "m m m m m o p m p"),
             
-            ("",
-             ""),
+            ("o t y o y t m p p p r r r r",
+             "o t y o y t m p p p r r r m r"),
             
-            ("",
-             ""),
+            ("d d p p o o o o t y y t y y t r r d d p p",
+             "d d m p p o m o m o m o t y m y t y m y t r r d d p p"),
             
-            ("",
-             ""),
+            ("y y y r r y o o m d p q r s t m o p p",
+             "y y y r r y o m o m d p q r s t m o p m p"),
             
-            ("",
-             ""),
+            ("d d d p p y t t y m o p p t y y t r r r r",
+             "d d d p p y t t y m o p p t y m y t r r r m r"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
-    
-    
-
-    
-
-    
-

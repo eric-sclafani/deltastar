@@ -243,7 +243,3 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
-        
-fst = insertion([("", "k")], ["_ o k o", "_ $", "_ o o l"])
-fst.displayparams
-print(fst.rewrite("o o o o l o k o k", show_path=True))
