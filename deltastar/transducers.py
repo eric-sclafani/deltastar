@@ -9,7 +9,7 @@ from utils.funcs import *
 from typing import List
 from tabulate import tabulate 
 
-RESERVED = ["$", "λ", "Ø"]
+RESERVED = ["$", "λ", "Ø", "?"]
 
 @dataclass
 class DFST:
@@ -24,9 +24,6 @@ class DFST:
     v0:str = ""
     q0:str = tr.State("λ")
     
-    
-    #! remove nulls from insertion rules for displaying
-    #! simplify sigma and gamma
     @property                    
     def displayparams(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
@@ -36,14 +33,20 @@ class DFST:
         print(*self.rules, sep="\n")
         print("~"*28,"\n")
         
-        #print(f"Σ: {self.sigma}\nΓ: {self.gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {cfx(self.q0.label)}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
-        
+        # these next two loops remove the extra symbols from sigma and gamma
+        sigma = set()
         for sym in self.sigma:
-            if sym in RESERVED:
+            if sym not in RESERVED:
+                sigma.add(sym)     
                 
-        
-        
-        
+        gamma = set()
+        for sym in self.gamma:
+            for char in sym:
+                if char not in RESERVED:
+                    gamma.add(char)
+                    
+                    
+        print(f"Σ: {sigma}\nΓ: {gamma}\nQ: {set(cfx(q) for q in self.Q) if self.Q else set(['<λ>'])}\nq0: {cfx(self.q0.label)}\nv0: {None if not self.v0 else self.v0}\nFinals: {finals}")
         
         
         print(f"Delta:")
@@ -241,5 +244,6 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
         
         
-fst = insertion([("", "a")], ["x y _"])
+fst = insertion([("", "k")], ["_ o k o", "_ $", "_ o o l"])
 fst.displayparams
+print(fst.rewrite("o o o o l o k o k", show_path=True))

@@ -92,5 +92,6 @@ def validate_insertion_context(context):
 
     if context.endswith("$ Ø"):
         context = context[:-2]
+
     
     return context

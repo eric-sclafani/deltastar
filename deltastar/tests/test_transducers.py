@@ -531,71 +531,71 @@ class TestInsertion:
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
-    @pytest.mark.skip(reason="Not Implemened Yet")
+    
     def test_Rcon_rewrite_1(self):
         
-        fst = insertion([("", "s")], ["_ s s s", ""])
+        fst = insertion([("", "s")], ["_ s s s", "_ h r u g", "_ p y"])
         in_out_pairs = [
-            ("s s s s",
-             "s s s s s s"),
+            ("s s s s h h p h r u g p s p y s s h r u g",
+             "s s s s s s h h p s h r u g p s s p y s s s h r u g"),
             
-            ("",
-             ""),
+            ("p p p y y p y s s s s h r h u h r u g p p y",
+             "p p s p y y s p y s s s s s s h r h u s h r u g p s p y"),
             
-            ("",
-             ""),
+            ("s p s p h g r u p p p y s s r h r u g",
+             "s p s p h g r u p p s p y s s r s h r u g"),
             
-            ("",
-             ""),
+            ("s s s s s s s s h s r u g h r u g p y p y s s s",
+             "s s s s s s s s s s s s s s h s r u g s h r u g s p y s p y s s s s"),
             
-            ("",
-             ""),
+            ("s p s p y g r u h r u g r u h r u g s s",
+             "s p s s p y g r u s h r u g r u s h r u g s s"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
     
-    @pytest.mark.skip(reason="Not Implemened Yet")
+    #! seems to be a problem with "_ $". Some kind of prefix transition issue I suspect
     def test_Rcon_rewrite_2(self):
         
-        fst = insertion([()], [])
+        fst = insertion([("", "k")], ["_ o k o", "_ $", "_ o o l", "_ g g h h"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("o o o o l o k o k",
+             "o o k o o l k o k o k"),
             
-            ("",
-             ""),
+            ("k o k o o l o l o o l o o l o l o k o",
+             "k k o k k o o l o l k o o l k o o l o l k o k o"),
             
-            ("",
-             ""),
+            ("g h g g h g g h h o o k o o l",
+             "g h g g h k g g h h o k o k k o o l k"),
             
-            ("",
-             ""),
+            ("o o k o o l g h h h h g g g g g h g g h h o o k o",
+             "o k o k k o o l g h h h h g g g g g h k g g h h o k o k o"),
             
-            ("",
-             ""),
+            ("l o l o l o l o k o o o l",
+             "l o l o l o l k o k o k o o l k"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
             
-    @pytest.mark.skip(reason="Not Implemened Yet")
+    
     def test_Rcon_rewrite_3(self):
         
-        fst = insertion([()], [])
+        fst = insertion([("", "j")], ["_ j k j k", "_ l m a o", "_ p $"])
         in_out_pairs = [
-            ("",
-             ""),
+            ("j j j j j k j k l l m m j k l m a o p",
+             "j j j j j j k j k l l m m j k j l m a o j p"),
             
-            ("",
-             ""),
+            ("p p l m p m l l m a o l m a o j k j k",
+             "p p l m p m l j l m a o j l m a o j j k j k"),
             
-            ("",
-             ""),
+            ("l m a j k k k j k k j k j k p",
+             "l m a j k k k j k k j j k j k j p"),
             
-            ("",
-             ""),
+            ("o a m l m a o p p j k j j j j k j k",
+             "o a m j l m a o p p j k j j j j j k j k"),
             
-            ("",
-             ""),
+            ("p j p l k m l m l m a a a l m a o j k k j k p p p",
+             "p j p l k m l m l m a a a j l m a o j k k j k p p j p"),
         ]
         for rewrite_sym, expected_sym in get_syms(fst, in_out_pairs):
             assert rewrite_sym == expected_sym
