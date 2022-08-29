@@ -9,7 +9,6 @@ from utils.funcs import PH, string_complement, despace
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#! class due to be removed
 @dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
 class State:
     
@@ -268,10 +267,8 @@ def prefix_transitions(context_trans, transduction_envs):
                                     # if output[-1] == ppt.end.label[-1]:
                                     #     output = output[0]
                                 
-                            if ctype == "left":
-                                pass
-                                   
-                            output += "λ" # the lambda represents going into a state where you don't send a symbol to output tape  
+                            if ctype != "left":  
+                                output += "λ" # the lambda represents going into a state where you don't send a symbol to output tape  
                                    
                         # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
                         if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
