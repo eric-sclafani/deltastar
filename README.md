@@ -35,7 +35,7 @@ If you wish to experiment with the code, feel free to do so by forking the repo.
 Currently, there are three factory functions to construct a DFST inside of `transducers.py`: **assimilation**, **deletion**, and **insertion** 
 (appropriately named for what types of rules they're used for, of course). 
 
-Finally, below are examples on how to use the API. For more intricate examples, see the `examples/` directory
+Finally, below are examples on how to use the API. For more intricate examples, see the `examples/` directory (currently not complete, will do very soon).
 
 ## Context specification
 
