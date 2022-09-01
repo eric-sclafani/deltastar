@@ -6,27 +6,39 @@ This file contains personal notes, planned additions, random ideas, etc..
 
 - 
 
-## Planned optimizations:
-I plan to refactor the code base to be more scalable, readable, and modular. Changes could include, but not limited to:
-- Implement operations over regular relations (concateation, union, composition)
+## The Great Refactoring:
+I plan to refactor the code base to be more `scalable`, `readable`, and `modular`. Changes include, but not limited to:
+- Multiple specification will be changed dramatically when I implement composition 
+    - Possible futue behavior: each specification will be turned into its own machine and then composed together
 - Restructure how the user's input is handled
-- I want to get rid of the three factory function style 
-- Remove dictonary for delta
+- Get rid of the three factory function style 
+- Custom data structure for delta
 - Greatly improve and simplify transition generation
     - this especially includes prefix transitions
+    - **Treat all contexts like dual contexts? This may simplify the code greatly!**
 - Improve how word boundary symbols are handled
-- Pynini interaction
+- Make insertion mappings actually consistently work lol
+    - Get rid of the wacky null interspersing I do and have multiple symbols in the output of insertion transduction transitions
+- Have user provide a symbol table (similar to pynini)?
+- Implement something analagous to sigmaStar
+    - A way to specify: "arbitrary combination of symbols". This will let the user check if a substring exists regardless of its position in the string. 
+    - This is not as important as the other changes here, but I do think it's crucial to have.
 
 ## Planned additions:
 
-- Probablty switch out `Pydot` for either `networkx` or `PyGraphviz` and generate an actual dot file instead of directly converting into a png (Pydot seems to be deprecated, so I might want to switch to a more maintained package)
+- simutaneous application, left-to-right, right-to-left specifications
+- Pynini interaction
 
-- simutaneous application, left-to-right, right-to-left
 
 
 ## Possible additions or random ideas: 
 
-- 
+- Implement basic string acceptors?
+- Possibly switch out `Pydot` for either `networkx` or `PyGraphviz` (Pydot seems to be deprecated, so I might want to switch to a more maintained package)
+
+
+## Notes
+- Should probably include mathematical formalisms and definitions once the code base is in a better spot (i.e. define a DFST, explain **?** transitions, etc...)
 
 ## Known issues:
 

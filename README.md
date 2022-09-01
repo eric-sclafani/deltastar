@@ -14,17 +14,18 @@ the types of machines you want to make are seemingly endless.
 However, in my opinion, Pynini's API is not straight forward. As a linguist, when I began my Pynini journey, I had no formal language theory background.
 Thus, it took a good chunk of time to understand the API and what was happening behind the scenes.
 
-You may say, of course, that one should only use these machines provided they have prior knowledge. I disagree with this notion, for I became infatuated with finite-state technology long before I was exposed to the formalisms. 
+You may say, of course, that one should only use these machines provided they have prior knowledge of them. I disagree with this notion, for I became infatuated with finite-state technology long before I was exposed to the formalisms.  
 
-This leads me to discuss the reason for Deltastar: I wish to make a fully-fledged FST library with an API that is both approachable and scalable.
+This leads me to discuss the reason for Deltastar: I wish to make a fully-fledged DFST library with an API that is both approachable to people new to formal language theory, and scalable for those who already have a background. 
+
+One more point is that OpenFST computes **`non-deterministic`** FSTs from the ground up. Without going into great detail (yet), these types of machines are indeed powerful and expressive but lack certain qualities that deterministic machines have that I and other computational linguists value. I seek to write a formula for creating FSTs that is **`deterministic by construction`**. That is, there will only ever exist one path that a string can traverse. I will go into *much* greater detail about this in the future, so stay tuned~.
 
 
 # The Great Refactoring
 
-I have learned a lot of things since I began this project, namely what my algorithms are capable of, and more importantly, **not capable of**. In order to sculpt deltastar to meet my vision, I need to refactor the entire code base. 
+I have learned a lot of things since I began this project, namely what my algorithms are capable of, and more importantly, **not capable of**. In order to sculpt deltastar to meet my vision, I need to refactor the entire code base. Thus, you can think of this project in its current state as a proof of concept.
 
-Like I mentioned before, deltastar in its current state is simply a rewrite rule compiler. However, I wish it to be more than that, which is why I've decided to not publish it to Pypi yet. Details for the sweeping changes are outlined
-in TODO.md. 
+Like I mentioned before, deltastar in its current state only offers rewrite rule compilation. However, I wish it to be more than that, which is why I've decided to not publish it to Pypi yet. Details for the sweeping changes are outlined in TODO.md. 
 
 # Usage
 
@@ -36,18 +37,35 @@ Currently, there are three factory functions to construct a DFST inside of `tran
 
 Finally, below are examples on how to use the API. For more intricate examples, see the `examples/` directory
 
-## Rule and mapping specification
+## Context specification
 
-For **assimilation** and **deletion** rewrite rules, one can specify multiple mappings and contexts for those mappings. This feature is temporary because it is a placeholder for FST closure properties, such as concatenation,
-union and composition. 
+Multiple contexts can be specified for a single machine. One inputs a **list of contexts during instantiation**. The context strings must take the following format:
+```python
+- Left:  X Y Z _
+- Right: _ X Y Z
+- Dual:  X Y Z _ A B C
+```
+where the underscore ( _ ) indicates where the transduction should occur.
 
-For **insertion**, only one mapping can be supplied at a time because of how the function works. If you think about it,
-insertion rules work by turning the empty string into a symbol. But one does not read in the empty string from the input, 
-so how can we do this? 
+**For a single machine, the contexts must be homogenous**; you cannot mix left context with right context, left context with dual context, right context with dual context:
 
-My answer: intersperse the input string with symbols meant to represent the empty string (in this case, "Ø"). 
-This lets us operate over the empty string. Because we are modifying the input string, however, it messes up transitions
-when multiple mappings are supplied.
+```python
+VALID CONTEXTS: ["a b _", "c c c _"], 
+                ["_ y", "_ x y z", "_ l m a o"], 
+                ["b c _ c b", "h h _ h h"]  
+
+INVALID CONTEXT: ["g g _", "p _ p", "_ o o o"]
+```
+
+
+
+## Mapping specification
+
+Mappings must be specified as a list of ( INPUT, OUTPUT ) pairs:
+
+```python
+>>> [("a", "b"), ("x", "y"), ("[tns=pst]", "ed")]
+```
 
 ## String input
 
@@ -60,11 +78,10 @@ Each function expects symbols to be space delimited. This allows for symbols to 
 
 ## Assimilation
 
-**Assimilation** rules map already existing symbols to new ones. The snippet below shows one mapping and one context:
+**Assimilation** rules map input symbols to new symbols. The snippet below shows one mapping and one context:
 
 ```python
 >>> fst = assimilation([("a", "b")], ["a c a b _"])
-
 ```
 Input your string into the `.rewrite()` and behold the magic:
 ```python
@@ -119,15 +136,158 @@ and receive a `x` insym, no transition exists for it and you go back to the empt
 
 ## Deletion
 
+**Deletion** rules map input symbols to the empty string. How is the empty string treated in this case?
+Symbols are mapped to null "Ø" and then removed before the output is returned to the user:
+```python
+
+>>> fst = deletion([("a", "")], ["b _ b",])
+>>> print(fst.rewrite("a a b a b a b b b a b"))
+'a a b b b b b b'
+
+>>> fst.displayparams
+
+~~~~~~~Rewrite rules:~~~~~~~
+a -> Ø / b _ b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+Σ: {'b', 'a'}
+Γ: {'b', 'a'}
+Q: {'<λ>', '<b>', '<ba>'}
+q0: <λ>
+v0: None
+Finals: {'<λ>': '', '<b>': '', '<ba>': 'a'}
+Delta:
+╒═════════╤═════════╤══════════╤═══════╕
+│ Start   │ Insym   │ Outsym   │ End   │
+╞═════════╪═════════╪══════════╪═══════╡
+│ <λ>     │ b       │ b        │ <b>   │
+│ <λ>     │ ?       │ ?        │ <λ>   │
+│ <b>     │ ?       │ ?        │ <λ>   │
+│ <b>     │ a       │ λ        │ <ba>  │
+│ <b>     │ b       │ b        │ <b>   │
+│ <ba>    │ b       │ Øbλ      │ <b>   │
+│ <ba>    │ ?       │ a?       │ <λ>   │
+╘═════════╧═════════╧══════════╧═══════╛
+
+``` 
+**Delta** here looks a little different from the **assimilation** example, with lambdas and symbols combined with the place holder **?** in the outsym (**a?**).
+This is because of how right and dual contexts are treated in my algorithm.
+
+So what do the lambdas mean? A transition will send **λ** to the output tape if and only if it
+travels into a state associated with a right or dual context. 
+
+In other words, **λ** ( in the outsym column) means:
+    
+    I have seen an input symbol, but have not sent a corresponding symbol to the output tape.
+
+This formalism adds no functionality. It is merely a visual indication of the above occurence. In some situations, you may see symbols combined with lambda, so maybe **xyzλ**. This occurs during right and dual context transitions and basically means:
+
+    Hey, I'm going into a state where I have not sent anything to the output tape, 
+    but I'm holding onto symbols from a right or dual context I've seen already, so I must output them now.
+    
+Don't worry if that doesn't make sense. It's only important to know if you want to modify the messy transition code (good luck lol). 
+
 ## Insertion
 
+**Insertion** rules require more steps. Because we need to detect the empty string, which is not a character in itself, **`we need to make it a character`**. This is done by interspersing the context and user's input with "Ø" symbols:
+
+( **`Disclaimer`**: because of this wacky handling of **insertion** rules, the transitions are highly volatile. For simple machines (i.e. one or two small contexts), the code will *most likely* work. But for anything more, don't be surprised if it doesn't. )
+
+```python
+
+>>> fst = insertion([("", "x"), ], ["_ m", "_ l o l"])
+>>> print(fst.rewrite("m m m l l o l"))
+'x m x m x m l x l o l'
+
+>>> fst.displayparams
+~~~~~~~Rewrite rules:~~~~~~~
+Ø -> x / _ m Ø m
+Ø -> x / _ l Ø o Ø l
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+Σ: {'o', 'm', 'l'}
+Γ: {'o', 'x', 'm', 'l'}
+Q: {'<Øm>', '<ØlØo>', '<Ø>', '<λ>', '<ØlØ>', '<ØlØoØ>', '<ØmØ>', '<Øl>'}
+q0: <λ>
+v0: None
+Finals: {'<λ>': '', '<Ø>': 'Ø', '<Øm>': 'Øm', '<ØmØ>': 'ØmØ', '<Øl>': 'Øl', '<ØlØ>': 'ØlØ', '<ØlØo>': 'ØlØo', '<ØlØoØ>': 'ØlØoØ'}
+Delta:
+╒═════════╤═════════╤══════════╤═════════╕
+│ Start   │ Insym   │ Outsym   │ End     │
+╞═════════╪═════════╪══════════╪═════════╡
+│ <λ>     │ Ø       │ λ        │ <Ø>     │
+│ <λ>     │ ?       │ ?        │ <λ>     │
+│ <Ø>     │ m       │ λ        │ <Øm>    │
+│ <Ø>     │ ?       │ Ø?       │ <λ>     │
+│ <Ø>     │ l       │ λ        │ <Øl>    │
+│ <Ø>     │ Ø       │ Øλ       │ <Ø>     │
+│ <Øm>    │ Ø       │ λ        │ <ØmØ>   │
+│ <Øm>    │ ?       │ Øm?      │ <λ>     │
+│ <ØmØ>   │ m       │ xmλ      │ <Øm>    │
+│ <ØmØ>   │ ?       │ ØmØ?     │ <λ>     │
+│ <ØmØ>   │ l       │ Ømλ      │ <Øl>    │
+│ <ØmØ>   │ Ø       │ ØmØλ     │ <Ø>     │
+│ <Øl>    │ Ø       │ λ        │ <ØlØ>   │
+│ <Øl>    │ ?       │ Øl?      │ <λ>     │
+│ <ØlØ>   │ o       │ λ        │ <ØlØo>  │
+│ <ØlØ>   │ ?       │ ØlØ?     │ <λ>     │
+│ <ØlØ>   │ m       │ Ølλ      │ <Øm>    │
+│ <ØlØ>   │ l       │ Ølλ      │ <Øl>    │
+│ <ØlØ>   │ Ø       │ ØlØλ     │ <Ø>     │
+│ <ØlØo>  │ Ø       │ λ        │ <ØlØoØ> │
+│ <ØlØo>  │ ?       │ ØlØo?    │ <λ>     │
+│ <ØlØoØ> │ l       │ xlØoλ    │ <Øl>    │
+│ <ØlØoØ> │ ?       │ ØlØoØ?   │ <λ>     │
+│ <ØlØoØ> │ m       │ ØlØoλ    │ <Øm>    │
+│ <ØlØoØ> │ Ø       │ ØlØoØλ   │ <Ø>     │
+╘═════════╧═════════╧══════════╧═════════╛
+```
+As you can see, the output of `.displayparams` here looks messy and hard to interpret. But its basically just your specified contexts interlaced with the null symbol. 
+
+As mentioned before, because insertion is handled this way, sometimes transitions are just plain wrong. I'm not sure exactly why this is, it may have something to do with the null symbol getting involved with the $k$-prefix transitions. This was one of the last features implemented, so it is the least tested. 
+
+This system will be overhauled during The Great Refactoring. It is clunky, ugly, and leads to more harm than good. 
+
+I plan to change this system to instead detect the transduction environment and send an extra symbol (from your mapping) to the output tape. 
+
+## Tags
+
+Another thing due to change are how "tags" are handled. I define tags as  multi-character symbols that represent some form of meaning. For example, morphological tags could look something like:
+```python 
+"[mod=imp]", "[tns=pst]", "[vce=psv]"
+```
+Basically, you need to enclose your tags with square brackets `[]`. During string parsing, all characters within those brackets are treated as one symbol. 
+
+# Issues
+
+`Please`, `please`, `please` if you encounter a bug (i.e. faulty transitions, output tape incorrect, etc...), open an issue. This helps me greatly because there are many edge cases w.r.t $k$-prefix transitions. This is evident from the wall of conditionals inside the `prefix_transitions` function.
+I can't guarantee I'll be able to address the issue immediately, but know it will be seen and will assist in The Great Refactoring. 
+
+In the issue, please include: 
+
+- A brief description of the bug
+- DFST object instantiation including the mappings and contexts
+- Input string and expected output string
 
 # Installation
 
-Simply fork the repo and clone your copy onto your machine. I am currently using pipenv to manage my environment,
-although I may switch to something else later.
+Simply fork the repo and clone your copy onto your machine. 
 
-The graphing functionality requires [graphviz](https://graphviz.org/) 
+I am currently using pipenv to manage my environment, although I may switch to something else later. If you're using pipenv, run `pipenv install` from the same directory. This will install all dependencies from the `Pipfile.lock` file. Then run `pipenv shell` to activate the environment.
+
+Otherwise, you can just manually install the libraries specified in `Pipfile` by running `pip3 install <package_name>`. 
+
+The graphing functionality requires [graphviz](https://graphviz.org/) to be installed.
+
+Code was written in Python 3.10.
+
+# Disclaimer
+
+This is my first large scale endeavor, so if anyone has advice about project/code layout, I'm all ears.
+
+# Contributions
+
+Because of The Great Refactoring, I am currently not merging pull requests. However, you are still more than welcome to open them if you have suggestions for how to fix or optimize something.
 
 # License
 [MIT](https://choosealicense.com/licenses/mit/)

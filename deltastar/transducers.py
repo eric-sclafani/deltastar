@@ -242,8 +242,3 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             contexts_insertion.append(dual)
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
-        
-        
-        
-fst = assimilation([("a", "b")], ["a c a b _",])
-fst.displayparams
