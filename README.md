@@ -176,7 +176,7 @@ Delta:
 This is because of how right and dual contexts are treated in my algorithm.
 
 So what do the lambdas mean? A transition will send **λ** to the output tape if and only if it
-travels into a state associated with a right or dual context. 
+travels into a state associated with a right or dual context. **λ** gets removed before the output is returned to the user. 
 
 In other words, **λ** ( in the outsym column) means:
     
@@ -258,7 +258,7 @@ Using the `.to_graph()` method, one can create a picture of your machine through
 ```python
 assimilation([("a", "b")], ["c _"]).to_graph()
 ```
-<img src="deltastar/examples/my_machine.png" alt="machine" width="200"/>
+(See the `my_machine.png` file for a graph of the above code)
 
 ## Tags
 
