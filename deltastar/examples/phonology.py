@@ -4,18 +4,47 @@ sys.path.append("/home/eric/python/projects/deltastar/deltastar")
 from transducers import assimilation, deletion, insertion
 from itertools import product
 
-#! remember to indicate in readme that examples are done
 
 # DISCLAIMER: I am not a phonologist so don't hurt me if some of these rules are wrong xD
 
+#
+### INTERVOCALIC VOICING
+#
+vowels = "a i o u e æ ɛ ə ɔ I ʊ".split()
 
-# INTERVOCALIC VOICING
+# create all intervocalic environments
+environments = list(product(vowels, "_", vowels))
+environments = list(map(lambda x: " ".join(x), environments))
+
+mappings = [
+    ("t", "ɾ"),
+    ("p", "b"),
+    ("k", "g"),
+    ("p", "b"),
+    ("f", "v"),
+    ("s", "z"),
+]
+intervocalic_voicing = assimilation(mappings, environments)
+
+#
+### NASAL PLACE ASSIMILATION
+#
+
+environments = ["_ k", "_ g"]
+mappings = [("n", "ŋ")]
+
+nasal_place_assim  = assimilation(mappings, environments)
 
 
-# PLACE ASSIMILATION
+#
+### POST NASAL VOICING
+#
 
+environments = ["m _", "ŋ _"]
+mappings = [
+    ("t", "d"),
+    ("p", "b"),
+    ("k", "g"),
+]
 
-# ENGLISH TAPPING
-
-
-# other easy rules???
+post_nasal_vce = assimilation(mappings, environments)

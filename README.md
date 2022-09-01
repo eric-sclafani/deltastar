@@ -35,7 +35,7 @@ If you wish to experiment with the code, feel free to do so by forking the repo.
 Currently, there are three factory functions to construct a DFST inside of `transducers.py`: **assimilation**, **deletion**, and **insertion** 
 (appropriately named for what types of rules they're used for, of course). 
 
-Finally, below are examples on how to use the API. For more intricate examples, see the `examples/` directory (currently not complete, will do very soon).
+Finally, below are examples on how to use the API. For more intricate examples, see the `examples/` directory.
 
 ## Context specification
 
@@ -46,6 +46,8 @@ Multiple contexts can be specified for a single machine. One inputs a **list of 
 - Dual:  X Y Z _ A B C
 ```
 where the underscore ( _ ) indicates where the transduction should occur.
+
+For `context-free machines`, do not specify contexts at all. Everthing becomes a self loop on the initial state then.
 
 **For a single machine, the contexts must be homogenous**; you cannot mix left context with right context, left context with dual context, right context with dual context:
 
@@ -249,6 +251,14 @@ As mentioned before, because insertion is handled this way, sometimes transition
 This system will be overhauled during The Great Refactoring. It is clunky, ugly, and leads to more harm than good. 
 
 I plan to change this system to instead detect the transduction environment and send an extra symbol (from your mapping) to the output tape. 
+
+## Graphing
+
+Using the `.to_graph()` method, one can create a picture of your machine through Graphviz and have it saved as a .png. Currently it only saves to the local directory and only saves as a .png.
+```python
+assimilation([("a", "b")], ["c _"]).to_graph()
+```
+<img src="deltastar/examples/my_machine.png" alt="machine" width="200"/>
 
 ## Tags
 

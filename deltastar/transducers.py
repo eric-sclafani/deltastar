@@ -60,6 +60,11 @@ class DFST:
     
     
     def to_graph(self, file_name="my_machine.png", show_PH=False):
+        """Creates a .png file of you machine via Graphviz and saves to local directory
+        
+        Args:
+            file_name (str): name of the file. Defaults to 'my_machine.png'
+            show_PH (bool): option to show the ?:? transitions. Set to False by default to avoid clutter"""
          
         if not file_name.endswith(".png"):
             raise ValueError("only .png files can be exported")
@@ -96,6 +101,15 @@ class DFST:
     
     #! add a better debug mode
     def rewrite(self, s:str, show_path=False) -> str:
+        """Rewrite a user's target string by iterating through delta and producing an output tape
+        
+        Args:
+            s (str): string to undergo transduction
+            show_path (bool): debug option to see the output tape and path the string takes through the machine (can get messy with large machines)
+            
+        Returns:
+            str: new string
+        """
         
         path = []
         out_tape = []
@@ -166,7 +180,16 @@ class DFST:
     
     
 def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
+    """Handles assimilation rewrite rules such that existing symbols are mapped to new ones
     
+    Args:
+        pairs (List[tuple]): list of (INPUT, OUTPUT) pairs. 
+        contexts (list): list of contexts for mapping to transpire
+        v0(str): optional string to prepend to output tape (is not involved in transduction)
+        
+    Returns:
+        DFST object: DFST instantiated through rewrite rules
+    """
     if contexts:
         validate_context(contexts)
     
@@ -183,6 +206,16 @@ def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
     
 def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
+    """Handles deletion rewrite rules such that existing symbols are mapped to the empty string.
+    
+    Args:
+        pairs (List[tuple]): list of (INPUT, "") pairs 
+        contexts (list): list of contexts for mapping to transpire
+        v0(str): optional string to prepend to output tape (is not involved in transduction)
+        
+    Returns:
+        DFST object: DFST instantiated through rewrite rules
+    """
     
     if contexts:
         validate_context(contexts)
@@ -200,6 +233,16 @@ def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
     
 def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
+    """Handles insertion rewrite rules such that the empty string is mapped to a new symbol.
+    
+    Args:
+        pair (List[tuple]): list containing a ("", OUTPUT) pair (Note: insertion can only handle one mapping at a time)
+        contexts (list): list of contexts for mapping to transpire
+        v0(str): optional string to prepend to output tape (is not involved in transduction)
+        
+    Returns:
+        DFST object: DFST instantiated through rewrite rules
+    """
     
     if contexts:
         validate_context(contexts)
@@ -242,3 +285,5 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
             contexts_insertion.append(dual)
             
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
+
+
