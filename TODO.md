@@ -42,5 +42,5 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 
 ## Known issues:
 
-- 
+- Under certain contextsand mappings, prefix transitions may generate incorrect transitions. This mostly involves rarer edge cases, but it does happen. 
 
