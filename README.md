@@ -268,6 +268,21 @@ Another thing due to change are how "tags" are handled. I define tags as  multi-
 ```
 Basically, you need to enclose your tags with square brackets `[]`. During string parsing, all characters within those brackets are treated as one symbol. 
 
+## Boundary symbols
+
+One can specify mappings to occur at the beginning or end of string using the reserved `$` symbol:
+```python
+["$ b b _"]
+["_ a b c $"]
+["x y z _ $"]
+```
+(Another) `Disclaimer`: **insertion** sometimes doesn't play well with certain contexts involving boundary symbols. Just another case of my not-so-great implementation of insertion.
+
+## Tests
+
+To run the unit tests, cd to `deltastar/deltastar/tests` and run `pytest` in the terminal. Pytest will automatically detect the test file and run each function.
+
+
 # Issues
 
 `Please`, `please`, `please` if you encounter a bug (i.e. faulty transitions, output tape incorrect, etc...), open an issue. This helps me greatly because there are many edge cases w.r.t $k$-prefix transitions. This is evident from the wall of conditionals inside the `prefix_transitions` function.

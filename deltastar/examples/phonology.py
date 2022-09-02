@@ -26,6 +26,7 @@ mappings = [
 ]
 intervocalic_voicing = assimilation(mappings, environments)
 
+
 #
 ### NASAL PLACE ASSIMILATION
 #

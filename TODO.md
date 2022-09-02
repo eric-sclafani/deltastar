@@ -4,7 +4,7 @@ This file contains personal notes, planned additions, random ideas, etc..
 
 ## Currently working on:
 
-- 
+- explain boundary syms
 
 ## The Great Refactoring:
 I plan to refactor the code base to be more `scalable`, `readable`, and `modular`. Changes include, but not limited to:

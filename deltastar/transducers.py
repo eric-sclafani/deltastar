@@ -287,3 +287,10 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     return DFST.from_rules(insyms, outsyms, contexts_insertion, v0=v0, rule_type="insertion")
 
 
+
+
+
+mappings1 = [("e","i"),("i","i")]
+environment1 = ["_ #"]
+final_e_raising = assimilation(mappings1, environment1)
+final_e_raising.displayparams
