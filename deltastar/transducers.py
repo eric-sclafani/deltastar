@@ -290,7 +290,5 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
 
 
 
-mappings1 = [("e","i"),("i","i")]
-environment1 = ["_ #"]
-final_e_raising = assimilation(mappings1, environment1)
-final_e_raising.displayparams
+fst = assimilation(("a", "b"), "a c a b _")
+
