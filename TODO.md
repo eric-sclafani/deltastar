@@ -15,7 +15,7 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 - Custom data structure for delta
 - Greatly improve and simplify transition generation
     - this especially includes prefix transitions
-    - **Treat all contexts like dual contexts? This may simplify the code greatly!**
+    - **Treat all contexts like dual contexts? This may simplify the code greatly (if its possible)!**
 - Improve how word boundary symbols are handled
 - Make insertion mappings actually consistently work lol
     - Get rid of the wacky null interspersing I do and have multiple symbols in the output of insertion transduction transitions
@@ -42,5 +42,5 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 
 ## Known issues:
 
-- Under certain contextsand mappings, prefix transitions may generate incorrect transitions. This mostly involves rarer edge cases, but it does happen. 
+- Under certain contexts and mappings, prefix transitions may generate incorrect transitions. This mostly involves rarer edge cases, but it does happen. 
 
