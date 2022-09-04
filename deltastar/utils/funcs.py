@@ -92,6 +92,12 @@ def validate_insertion_context(context):
 
     if context.endswith("$ Ø"):
         context = context[:-2]
+    return context
 
     
-    return context
+def subslices(iterable) -> tuple:
+    l = []
+    i = 0
+    for j in range(1,len(iterable)+1):
+        l.append(iterable[i:j])
+    return tuple(l)

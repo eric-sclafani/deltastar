@@ -1,40 +1,44 @@
 from dataclasses import dataclass
-from typing import Tuple
+from utils.funcs import subslices
 
-class State:
-    
-    label:str
-
-    def __len__(self):
-        return len(self.label)
-
-    def __repr__(self):
-        return self.label
-    
-    def __getitem__(self, idx):
-        string = self.label
-        if isinstance(idx, slice): # idx is a slice object in this case
-            start,stop,step = idx.indices(len(string))
-            return "".join([string[i] for i in range(start,stop,step)])
-        else:
-            return string[idx]
 
 @dataclass
 class Rule:
     
-    mapping:Tuple[str]
-    context:str
+    insym:str
+    outsym:str
+    context:list
     ctype:str
     k:int
     
     @property
     def statelabels(self):
-        pass
-    
+        return subslices(self.context)
     
     @classmethod
-    def rule(cls, ):
-        pass
+    def rule(cls, mapping:tuple[str], context):
+        
+        insym, outsym = mapping[0], mapping[1]
+        context = context.split()
+        
+        index = context.index("_")
+        ctype = "left" if index == len(context)-1 else "right" if index == 0 else "dual"
+        
+        k = len(context)
+        
+        return cls(insym, outsym, context, ctype, k)
+    
+    
+rule = Rule.rule(("a", "b"), "a c a b _")
+
+
+
+    
+
+ 
+    
+    
+
     
     
     
