@@ -7,37 +7,57 @@ class Rule:
     
     insym:str
     outsym:str
-    context:list
+    context:str
     ctype:str # context type
     mtype:str # map type
-    mindex:int # map index
     
     def __repr__(self):
-        return f"{self.insym} -> {self.outsym} / {' '.join(self.context)}"
+        context = "_" if not self.context else self.context
+        return f"{self.insym} -> {self.outsym} / {context}"
     
     @property
     def statelabels(self):
         
-        if self.ctype == "left":
+        if self.ctype == "cf":
+            context  = ""
+        
+        elif self.ctype == "left": # exclude underscore
             context = self.context[:-1]
             
-        return subslices(context) # exclude the underscore
+        elif self.ctype == "right": # include insym as first symbol and exclude underscore and last context symbol
+            context = self.insym + self.context[1:-1]
+            
+        elif self.ctype == "dual":
+            leftcon = self.context.split("_")[0].strip()
+            rightcon = self.context.split("_")[1].strip()
+            
+            context = leftcon + " " + (self.insym + " " + rightcon[:-1])
+            
+        context = context.split()  
+        return (["λ"],) + subslices(context) 
     
     @classmethod
-    def rule(cls, mapping:tuple[str], context):
-        
+    def rule(cls, mapping:tuple[str], context=""):
         insym, outsym = mapping
-        context = context.split()
-        index = context.index("_")
+        context_list = context.split()
         
-        ctype = "left" if index == len(context)-1 else "right" if index == 0 else "dual"           
-        mtype = "delete"if not outsym else "insert" if not insym else "rewrite"  
+        if context: 
+            index = context_list.index("_")
+            ctype =  "left" if index == len(context_list)-1 else "right" if index == 0 else "dual"  
+        else:
+            ctype = "cf"       
         
-        return cls(insym, outsym, context, ctype, mtype, index)
+        mtype = "delete" if not outsym else "insert" if not insym else "rewrite"  
+        return cls(insym, outsym, context, ctype, mtype)
     
     
-rule = Rule.rule(("b", "d"), "a c a b _")
+rule = Rule.rule(("x", "y"), "_ b a b")
+print(rule)
+print(rule.ctype)
 print(rule.statelabels)
+
+
+
 
 
 
