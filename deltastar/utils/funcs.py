@@ -97,7 +97,11 @@ def validate_insertion_context(context):
     
 def subslices(iterable) -> tuple:
     l = []
-    i = 0
     for j in range(1,len(iterable)+1):
-        l.append(iterable[i:j])
-    return tuple(l)
+        l.append(iterable[0:j])
+    l = tuple(map(lambda x: "".join(x), l))
+    return l
+
+
+    
+    

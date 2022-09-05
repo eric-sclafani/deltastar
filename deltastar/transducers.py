@@ -180,16 +180,7 @@ class DFST:
     
     
 def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
-    """Handles assimilation rewrite rules such that existing symbols are mapped to new ones
     
-    Args:
-        pairs (List[tuple]): list of (INPUT, OUTPUT) pairs. 
-        contexts (list): list of contexts for mapping to transpire
-        v0(str): optional string to prepend to output tape (is not involved in transduction)
-        
-    Returns:
-        DFST object: DFST instantiated through rewrite rules
-    """
     if contexts:
         validate_context(contexts)
     
@@ -206,16 +197,7 @@ def assimilation(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
     
 def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
-    """Handles deletion rewrite rules such that existing symbols are mapped to the empty string.
     
-    Args:
-        pairs (List[tuple]): list of (INPUT, "") pairs 
-        contexts (list): list of contexts for mapping to transpire
-        v0(str): optional string to prepend to output tape (is not involved in transduction)
-        
-    Returns:
-        DFST object: DFST instantiated through rewrite rules
-    """
     
     if contexts:
         validate_context(contexts)
@@ -233,16 +215,6 @@ def deletion(pairs:List[tuple], contexts=[], v0="") -> DFST:
     
     
 def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
-    """Handles insertion rewrite rules such that the empty string is mapped to a new symbol.
-    
-    Args:
-        pair (List[tuple]): list containing a ("", OUTPUT) pair (Note: insertion can only handle one mapping at a time)
-        contexts (list): list of contexts for mapping to transpire
-        v0(str): optional string to prepend to output tape (is not involved in transduction)
-        
-    Returns:
-        DFST object: DFST instantiated through rewrite rules
-    """
     
     if contexts:
         validate_context(contexts)
@@ -289,6 +261,4 @@ def insertion(pairs:List[tuple], contexts=[], v0="") -> DFST:
 
 
 
-
-fst = assimilation(("a", "b"), "a c a b _")
 

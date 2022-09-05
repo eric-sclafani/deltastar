@@ -9,7 +9,7 @@ from utils.funcs import PH, string_complement, despace
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-@dataclass(frozen=True) # frozen makes the class immutable so States can be dict keys in delta
+@dataclass(frozen=True) 
 class State:
     
     label:str
