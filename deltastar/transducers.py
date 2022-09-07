@@ -23,9 +23,8 @@ class DFST:
     rule_type:str
     v0:str = ""
     q0:str = tr.State("λ")
-    
-    @property                    
-    def displayparams(self):
+                   
+    def display_params(self):
         """ Prints rewrites rule, sigma, gamma, Q, q0, v0, F, delta""" 
         finals = {f"<{k}>":v for k,v in self.finals.items()}
         
