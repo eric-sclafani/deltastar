@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from utils.funcs import subslices
+from utils.funcs import subslices, despace
 from more_itertools import windowed
-from collections import namedtuple
 
 @dataclass
 class Rule:
@@ -9,9 +8,9 @@ class Rule:
     Y:str
     context:str
     ctype:str
-    target_context:str
-    trigger_sym:str
-    mtype:str
+    target_context:str # unused
+    trigger_sym:str # unused
+    mtype:str # unused
 
     def __repr__(self):
         context = "_" if not self.context else self.context
@@ -52,10 +51,27 @@ class Rule:
         
         return cls(X, Y, context, ctype, target_context, trigger_sym, mtype)
 
-#! add a state output attribute (use dataclass?)
-State = namedtuple("State", "label, ctype, seen_lcon")
-Transition = namedtuple("Transition", "start, insym, outsym, end, is_mapping")
+@dataclass
+class State:
+    label:list
+    ctype:str
+    seen_lcon:str = ""
+    output:str = None
     
+    def __repr__(self):
+        return despace(self.label)
+    
+@dataclass
+class Transition:
+    start:State
+    insym:str
+    outsym:str
+    end:State
+    is_mapping:bool=False
+    
+    def __repr__(self):
+        return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"
+
 class Transitions:
     """This constructor holds all transitions and methods for accessing transition attributes"""
     
@@ -63,37 +79,58 @@ class Transitions:
         self.rule = rule
         self.transitions = []
         
-    def display_transitions(self):
-        for trans in self.transitions:
-            print(f"({trans.start.label} | {trans.insym} -> {trans.outsym} | {trans.end.label})")
-    
     def get_maps(self):
-        """Retrieves all mapping transitions"""       
+        """Retrieves all mapping transitions""" 
         maps = list(filter(lambda x: x.is_mapping, self.transitions))
         return maps
     
-    def get_states(self):
+    def get_statelabels(self):
         """Retrieves all state labels"""
         return list(map(lambda x: x.start.label and x.end.label, self.transitions))
-    
-    def get_insyms(self):
+        
+    def get_sigma(self):
         insyms = set(map(lambda x: x.insym, self.transitions))
         insyms.add(self.rule.trigger_sym)
         return insyms
         
-    def search_transitions(self, start=None, insym=None, outsym=None, end=None):
-        pass
+    def get_trans_with_state(self, state_label):
+        return list(filter(lambda x: x.start.label == state_label, self.transitions))
+    
+    def state_exists_with_insym(self, state_label, pfxsym):
+        # if this list is ever populated, then state already has an outgoing arc with pfxsym
+        return True if list(filter(lambda x: x.start.label == state_label and x.insym == pfxsym, self.transitions)) else False
     
     def add_transition(self, start, insym, outsym, end, is_mapping=False):
         self.transitions.append(Transition(start, insym, outsym, end, is_mapping))
+        
+    def display_transitions(self):
+        print(*self.transitions, sep="\n")
 
-
-def k_prefix_transitions(func):
+def add_prefix_transitions(func):
     def wrapper(mapping, context=""):
         
         t = func(mapping, context)
-        last_state = t.rule.get_statelabels()[-1]
-        
+        for q in t.get_statelabels():
+            pfxstate = q[1:]
+            
+            print(f"{q = }")
+            while True:
+                # concats each sym in sigma with pfxstate and keeps it if it exists in Q
+                pfxstates = [pfxstate + [s] for s in t.get_sigma() if pfxstate + [s] in t.get_statelabels()]
+                print(f"{pfxstates = }")
+                
+                #! next check if q already has an outgoing transition with pfxstate[-1]
+                for state in pfxstates:
+                    pfxsym = state[-1]
+                    
+                    if t.state_exists_with_insym(q, pfxsym):
+                        print(f"\t\tCurrent state: {q} already exists with outsym: {pfxsym}")
+                    
+                      
+                if not pfxstate:
+                    break 
+                pfxstate = pfxstate[1:]   
+            print("\n")
         
                 
                 
@@ -104,25 +141,26 @@ def k_prefix_transitions(func):
     return wrapper
     
     
-@k_prefix_transitions  
-def generate_transitions(mapping, context):
+@add_prefix_transitions  
+def generate_transitions(mapping, context) -> Transitions:
     
     rule = Rule.rule(mapping, context)  
     t = Transitions(rule)
-    for start_, end_ in windowed(rule.get_statelabels(), n=2, fillvalue=None):
-        
+    
+    for start, end in windowed(rule.get_statelabels(), n=2, fillvalue=None):
         if rule.ctype == "cf": # cf is self loop on initial state mapping X to Y
-            t.add_transition(start  = State(start_, ctype="cf", seen_lcon=""),
+            end = start
+            t.add_transition(start  = State(start, ctype="cf", seen_lcon=""),
                              insym  = rule.X,
                              outsym = rule.Y,
-                             end    = State(start_, ctype="cf", seen_lcon=""), 
+                             end    = State(end, ctype="cf", seen_lcon=""), 
                              is_mapping = True)
             
         elif rule.ctype == "left":
-            t.add_transition(start  = State(start_, ctype="left", seen_lcon=""),
-                             insym  = end_[-1],
-                             outsym = end_[-1],
-                             end    = State(end_, ctype="left", seen_lcon=""))
+            t.add_transition(start  = State(start, ctype="left", seen_lcon=""),
+                             insym  = end[-1],
+                             outsym = end[-1],
+                             end    = State(end, ctype="left", seen_lcon=""))
         
         
         
@@ -130,17 +168,16 @@ def generate_transitions(mapping, context):
             pass
         
         elif rule.ctype == "dual":
-            pass
+            pass # possibly get rid of "dual" type and treat as left + right??
         
     return t
     
     
 
-test = generate_transitions(("a", "b"), "a c a b _")
+test = generate_transitions(("a", "b"), "a a a c a b [mod=imp] _")
+#test.display_transitions()
 
 
-
-
     
     
 
@@ -150,3 +187,13 @@ test = generate_transitions(("a", "b"), "a c a b _")
     
     
     
+
+# future composition code 👀
+# class Test(str):
+    
+#     def __matmul__(self, B):
+#         A = self
+#         return Test(A + B)
+# A = Test("hello")
+# B = Test("hi")
+# print(A @ B)

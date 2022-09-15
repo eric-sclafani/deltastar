@@ -61,46 +61,13 @@ def string_complement(s1, s2, pad=None):
         if s != s2[i]:
             output += s
     return output
-
-def validate_context(contexts):
     
-    to_check = []
-    for con in contexts:
-        con = con.strip()
-        if not isinstance(con, str):
-            raise ContextError(f"{con} must be of type 'str'")
-        elif "_" not in con:
-            raise ContextError(f"{con} not recognized: context must be specified as X _, _ X, or X _ X, where X = contextual symbol(s)")
-        
-        if con[-1] == "_":
-            to_check.append("L")
-        elif con[0] == "_":
-            to_check.append("R")
-        else:
-            to_check.append("D")
-            
-    verdict = all(map(lambda x: x == to_check[0], to_check))
     
-    if not verdict:
-        raise ContextError("Context type must be homogenous.")
-    
-
-def validate_insertion_context(context):
-    """Hard coded check to see if an insertion context contains an incorrect symbol sequence"""
-    if context.startswith("Ø $"):
-        context = context[2:]
-
-    if context.endswith("$ Ø"):
-        context = context[:-2]
-    return context
-
-    
-def subslices(iterable) -> tuple:
+def subslices(iterable) -> tuple[list]:
     l = []
     for j in range(1,len(iterable)+1):
         l.append(iterable[0:j])
-    l = tuple(map(lambda x: "".join(x), l))
-    return l
+    return tuple(l)
 
 
     

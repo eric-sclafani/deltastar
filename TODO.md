@@ -4,7 +4,7 @@ This file contains personal notes, planned additions, random ideas, etc..
 
 ## Currently working on:
 
-- explain boundary syms
+- rework transition code
 
 ## The Great Refactoring:
 I plan to refactor the code base to be more `scalable`, `readable`, and `modular`. Changes include, but not limited to:
@@ -22,7 +22,7 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 - Have user provide a symbol table (similar to pynini)?
 - Implement something analagous to sigmaStar
     - A way to specify: "arbitrary combination of symbols". This will let the user check if a substring exists regardless of its position in the string. 
-    - This is not as important as the other changes here, but I do think it's crucial to have.
+    - I'm thinking I can do this by reserving asterick `*` to mean "any combination of symbols"
 
 ## Planned additions:
 
@@ -34,11 +34,11 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 ## Possible additions or random ideas: 
 
 - Implement basic string acceptors?
-- Possibly switch out `Pydot` for either `networkx` or `PyGraphviz` (Pydot seems to be deprecated, so I might want to switch to a more maintained package)
 
 
 ## Notes
 - Should probably include mathematical formalisms and definitions once the code base is in a better spot (i.e. define a DFST, explain **?** transitions, etc...)
+https://stackoverflow.com/questions/6392739/what-does-the-at-symbol-do-in-python/28997112#28997112
 
 ## Known issues:
 
