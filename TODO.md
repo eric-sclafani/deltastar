@@ -28,6 +28,8 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 
 - simutaneous application, left-to-right, right-to-left specifications
 - Pynini interaction
+- rename displayparams to .summary()
+- add debug mode to graphing, will add exra lambdas to indicate symbols not output
 
 
 

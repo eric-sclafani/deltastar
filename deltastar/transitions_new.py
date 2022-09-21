@@ -28,8 +28,8 @@ class Rule:
             context = self.context.split("_")
             lcon = context[0].strip() if context[0] else ""
             rcon = self.X + " " + context[1][:-1].strip() if context[1] else ""
-            context = lcon + " [SWITCH] " + rcon
-    
+            context = lcon + " " + rcon
+            
         except IndexError:
             context = ""
         
@@ -39,7 +39,7 @@ class Rule:
     @classmethod
     def rule(cls, mapping, context=""):
         X, Y = mapping
-        ctype = ["cf"]
+        ctype = "cf"
         if context: 
             context_list = context.split()
             index = context_list.index("_")
@@ -128,22 +128,10 @@ def make_context_trans(t):
                              end    = State(end, ctype="right", output=start))
         
         elif t.rule.ctype == "dual":
-            switch = False
-            if end == "[SWITCH]":
-                switch = True
-            
-            if not switch:
-                left_end = State(end, ctype="left")
-                left_context = end
-                t.add_transition(start  = State(start, ctype="left"),
-                                 insym  = end[-1],
-                                 outsym = end[-1],
-                                 end    = left_end) 
-            else:
-                t.add_transition(start  = State(start, ctype="dual"),
-                                 insym  = end[-1],
-                                 outsym = "λ",
-                                 end    = State(end, ctype="dual"))
+            pass
+
+        
+        
     return t
     
 
@@ -191,11 +179,14 @@ def generate_transitions(mapping, context=""):
     #t = make_PH_trans(t)
     return t
 
-t1 = generate_transitions(("x", "b"), "a a a c a b _")
+#t1 = generate_transitions(("x", "b"), "a a a c a b _")
 #t1.display_transitions()
 
-t2 = generate_transitions(("x", "y"), "b b _ a a")
-t2.display_transitions()
+t2 = generate_transitions(("x", "y"), "a c _")
+print(t2.rule.get_statelabels())
+print(t2.rule.get_trigger_state())
+print(t2.rule.get_trigger_sym())
+
  
 
     
