@@ -5,6 +5,12 @@ This type of machine is designed to edit (transduce) a string according to a def
 Linguists value FSTs because of their correspondance with rewrite rules, for which both *phonology* and *morphology* in particular 
 have an abundance of. One can encode these linguistic mappings though finite-state string transducers.
 
+# Note
+
+The code base is undergoing very heavy reconstruction. Refer to `refactoring.md` for more details.
+
+Check out the `dev` branch for the most recent updates!
+
 # Inspiration
 
 This project is directly inspired by [Pynini](https://pypi.org/project/pynini/), a python wrapper for the C++ library [OpenFST](https://www.openfst.org/twiki/bin/view/FST/WebHome) that hosts a powerful API for constructing FSTs. 
@@ -18,14 +24,10 @@ You may say, of course, that one should only use these machines provided they ha
 
 This leads me to discuss the reason for Deltastar: I wish to make a fully-fledged DFST library with an API that is both approachable to people new to formal language theory, and scalable for those who already have a background. 
 
-One more point is that OpenFST computes **`non-deterministic`** FSTs from the ground up. Without going into great detail (yet), these types of machines are indeed powerful and expressive but lack certain qualities that deterministic machines have that I and other computational linguists value. I seek to write a formula for creating FSTs that is **`deterministic by construction`**. That is, there will only ever exist one path that a string can traverse. I will go into *much* greater detail about this in the future, so stay tuned~.
+One more point is that OpenFST computes **`non-deterministic`** FSTs from the ground up. Without going into great detail (yet), these types of machines are indeed powerful and expressive but lack certain qualities that deterministic machines have that I and other computational linguists value. I seek to write a formula for creating FSTs that is **`deterministic by construction`**. That is, there will only ever exist one path that a string can traverse.
 
 
-# The Great Refactoring
 
-I have learned a lot of things since I began this project, namely what my algorithms are capable of, and more importantly, **not capable of**. In order to sculpt deltastar to meet my vision, I need to refactor the entire code base. Thus, you can think of this project in its current state as a proof of concept.
-
-Like I mentioned before, deltastar in its current state only offers rewrite rule compilation. However, I wish it to be more than that, which is why I've decided to not publish it to Pypi yet. Details for the sweeping changes are outlined in TODO.md. 
 
 # Usage
 
