@@ -24,33 +24,31 @@ class Rule:
     
     def get_statelabels(self):
         
-        if self.ctype == "cf":
-            context  = ""
-        elif self.ctype == "left": # exclude underscore
-            context = self.context[:-1]
-        elif self.ctype == "right": # include insym as first symbol and exclude underscore and last context symbol
-            context = self.insym + self.context[1:-1]
-        elif self.ctype == "dual":
-            lcon = self.context.split("_")[0].strip() # left context
-            rcon = self.context.split("_")[1].strip() # right context
-            context = lcon + " " + (self.X + " " + rcon[:-1])
-            
+        try:
+            context = self.context.split("_")
+            lcon = context[0].strip() if context[0] else ""
+            rcon = self.X + " " + context[1][:-1].strip() if context[1] else ""
+            context = lcon + " [SWITCH] " + rcon
+    
+        except IndexError:
+            context = ""
+        
         context = context.split()  
         return (["λ"],) + subslices(context) 
         
     @classmethod
     def rule(cls, mapping, context=""):
         X, Y = mapping
-        ctype = "cf"
+        ctype = ["cf"]
         if context: 
             context_list = context.split()
             index = context_list.index("_")
-            ctype =  "left" if index == len(context_list)-1 else "right" if index == 0 else "dual"  
+            ctype =  "left" if index == len(context_list)-1 else "right" if index == 0 else "dual"
               
         mtype = "delete" if not Y else "insert" if not X else "rewrite"  
         return cls(X, Y, context, ctype, mtype)
 
-@dataclass
+@dataclass(frozen=True)
 class State:
     label:list
     ctype:str
@@ -89,7 +87,7 @@ class Transitions:
         
     def get_sigma(self):
         insyms = set(map(lambda x: x.insym, self.transitions))
-        insyms.add(self.rule.trigger_sym)
+        insyms.add(self.rule.get_trigger_sym())
         return insyms
         
     def get_trans_with_state(self, state_label):
@@ -104,35 +102,52 @@ class Transitions:
         
     def display_transitions(self):
         print(*self.transitions, sep="\n")
-        s
         
-def context_transitions(t):
+        
+def make_context_trans(t):
     
     for start, end in windowed(t.rule.get_statelabels(), n=2, fillvalue=None):
         if t.rule.ctype == "cf": 
             end = start # cf is self loop on initial state mapping X to Y
-            t.add_transition(start  = State(start, ctype="cf", seen_lcon=""),
+            t.add_transition(start  = State(start, ctype="cf"),
                              insym  = t.rule.X,
                              outsym = t.rule.Y,
-                             end    = State(end, ctype="cf", seen_lcon=""), 
+                             end    = State(end, ctype="cf"), 
                              is_mapping = True)
             
         elif t.rule.ctype == "left":
-            t.add_transition(start  = State(start, ctype="left", seen_lcon=""),
+            t.add_transition(start  = State(start, ctype="left"),
                              insym  = end[-1],
                              outsym = end[-1],
-                             end    = State(end, ctype="left", seen_lcon=""))
+                             end    = State(end, ctype="left"))
         
         elif t.rule.ctype == "right":
-            pass
+            t.add_transition(start  = State(start, ctype="right", output=start),
+                             insym  = end[-1],
+                             outsym = "λ",
+                             end    = State(end, ctype="right", output=start))
         
         elif t.rule.ctype == "dual":
-            pass # possibly get rid of "dual" type and treat as left + right??
-        
+            switch = False
+            if end == "[SWITCH]":
+                switch = True
+            
+            if not switch:
+                left_end = State(end, ctype="left")
+                left_context = end
+                t.add_transition(start  = State(start, ctype="left"),
+                                 insym  = end[-1],
+                                 outsym = end[-1],
+                                 end    = left_end) 
+            else:
+                t.add_transition(start  = State(start, ctype="dual"),
+                                 insym  = end[-1],
+                                 outsym = "λ",
+                                 end    = State(end, ctype="dual"))
     return t
     
 
-def prefix_transitions(t):
+def make_prefix_trans(t):
 
     for q in t.get_statelabels():
         pfxstate = q[1:]
@@ -142,13 +157,9 @@ def prefix_transitions(t):
             pfxstates = [pfxstate + [s] for s in t.get_sigma() if pfxstate + [s] in t.get_statelabels()]
             for state in pfxstates:
                 pfxsym = state[-1]
+                
                 if not t.state_exists_with_insym(q, pfxsym):
-                    if t.rule.ctype == "left":
-                        
-                        # detect the transduction
-                        if q == t.rule.get_trigger_state():
-                            pass  
-                        
+                    if t.rule.ctype == "left": 
                         t.add_transition(start  = State(q, ctype="left", seen_lcon=""),
                                          insym  = pfxsym,
                                          outsym = pfxsym,
@@ -161,27 +172,34 @@ def prefix_transitions(t):
 
     return t
 
-def placeholder_transitions(t):
-    pass
+
+def make_mapping(t):
+    return t
+
+def make_PH_trans(t):
+    return t
     
 
-def generate_transitions(mapping, context):
+def generate_transitions(mapping, context=""):
     
     rule = Rule.rule(mapping, context)  
     t = Transitions(rule)
     
-    ct = context_transitions(t)
-    
-    return ct
+    t = make_context_trans(t)
+    #t = make_prefix_trans(t)
+    #t = make_mapping(t)
+    #t = make_PH_trans(t)
+    return t
 
-test = generate_transitions(("x", "b"), "a a a c a b _ m k h")
+t1 = generate_transitions(("x", "b"), "a a a c a b _")
+#t1.display_transitions()
 
-print(test.rule.get_trigger_sym())
-    
-    
+t2 = generate_transitions(("x", "y"), "b b _ a a")
+t2.display_transitions()
+ 
 
     
-    
+
     
     
     

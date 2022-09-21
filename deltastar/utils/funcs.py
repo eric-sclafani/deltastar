@@ -7,9 +7,17 @@ class ContextError(Exception):
 class RuleError(Exception):
     pass
 
-
 PH = "?" 
 cfx = lambda string: f"<{string}>" 
+
+def subslices(iterable) -> tuple[list]:
+    l = []
+    for j in range(1,len(iterable)+1):
+        l.append(iterable[0:j])
+    return tuple(l)
+
+
+
 
 def intersperse(string:str, delim=" "):
     """This mess of a function intersperses a string with delim. Accounts for tag format as well: [XXX].
@@ -62,12 +70,6 @@ def string_complement(s1, s2, pad=None):
             output += s
     return output
     
-    
-def subslices(iterable) -> tuple[list]:
-    l = []
-    for j in range(1,len(iterable)+1):
-        l.append(iterable[0:j])
-    return tuple(l)
 
 
     
