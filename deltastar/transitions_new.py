@@ -189,7 +189,8 @@ print(t2.rule.get_trigger_sym())
 
  
 
-    
+#! CURRENTLY WORKING ON:
+# - organizing context code to be more efficientc(i.e., don't treat dual context as special)
 
     
     
