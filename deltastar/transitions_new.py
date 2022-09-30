@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from utils.funcs import subslices, despace
+from utils.funcs import despace
 from more_itertools import windowed
+from ipdb import set_trace
 
 @dataclass
 class Rule:
@@ -24,17 +25,27 @@ class Rule:
     
     def get_statelabels(self):
         
-        try:
-            context = self.context.split("_")
-            lcon = context[0].strip() if context[0] else ""
-            rcon = self.X + " " + context[1][:-1].strip() if context[1] else ""
-            context = lcon + " " + rcon
-            
-        except IndexError:
-            context = ""
+        lstates, rstates = [], []
         
-        context = context.split()  
-        return (["λ"],) + subslices(context) 
+        getlabels = lambda x: [tuple(x[0:j]) for j in range(1, len(x)+1)]
+        context = self.context.split("_")
+        
+        if self.ctype in ["left", "dual"]:
+            lcon = context[0].strip() if context[0] else ""
+            lstates = getlabels(lcon.split())
+            
+        if self.ctype in ["right", "dual"]:
+            rcon = self.X + " " + context[1][:-1].strip() if context[1] else ""
+            
+            if self.ctype == "dual":
+                rcon = lcon + " " + rcon
+            
+            # filter out the left states 
+            rstates = [s for s in getlabels(rcon.split()) if s not in lstates]
+
+        return {"q0":[("λ",)], 
+                "lstates":lstates, 
+                "rstates":rstates}
         
     @classmethod
     def rule(cls, mapping, context=""):
@@ -182,10 +193,11 @@ def generate_transitions(mapping, context=""):
 #t1 = generate_transitions(("x", "b"), "a a a c a b _")
 #t1.display_transitions()
 
-t2 = generate_transitions(("x", "y"), "a c _")
+t2 = generate_transitions(("x", "y"), "a c _ g f")
 print(t2.rule.get_statelabels())
-print(t2.rule.get_trigger_state())
-print(t2.rule.get_trigger_sym())
+# print(t2.rule.get_statelabels())
+# print(t2.rule.get_trigger_state())
+# print(t2.rule.get_trigger_sym())
 
  
 
