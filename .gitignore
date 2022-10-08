@@ -131,4 +131,5 @@ dmypy.json
 
 # misc
 .DS_Store
-
+*.png
+*.dot

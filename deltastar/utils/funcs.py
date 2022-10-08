@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+from typing import Iterable
     
 class ContextError(Exception):
     pass
@@ -10,12 +10,16 @@ class RuleError(Exception):
 PH = "?" 
 cfx = lambda string: f"<{string}>" 
     
-def despace(string):
-    return "".join([c for c in string if c != " "])
+def despace(l:Iterable)->str:
+    return "".join([c for c in l if c != " "])
+
+def join(l:Iterable)->str:
+    return " ".join(l)
 
 
 
 
+#! deprecated (and gross) functions from first release
 # def intersperse(string:str, delim=" "):
 #     """This mess of a function intersperses a string with delim. Accounts for tag format as well: [XXX].
 

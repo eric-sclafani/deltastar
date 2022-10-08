@@ -30,6 +30,8 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 - Pynini interaction
 - rename displayparams to .summary()
 - add debug mode to graphing, will add exra lambdas to indicate symbols not output
+- https://code-maven.com/interactive-shell-with-cmd-in-python
+- https://towardsdatascience.com/write-clean-python-code-using-pipes-1239a0f3abf5
 
 
 
