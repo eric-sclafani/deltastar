@@ -3,7 +3,7 @@ from utils.funcs import despace
 
 @dataclass
 class State:
-    label:list
+    label:tuple
     ctype:str
     seen_lcon:str = ""
     output:str = None
@@ -108,13 +108,12 @@ def make_context_trans(t):
     
     lstates, rstates = t.rule.get_state_labels()
 
-    for i in range(len(lstates)-1):
+    for i in range(len(lstates)-1): # this block generates left context transitions
         start, end = lstates[i], lstates[i+1]
         t.add_transition(start  = State(start, ctype="left"),
                          insym  = end[-1],
                          outsym = end[-1],
                          end    = State(end, ctype="left"))
-        
     
     try: # Dual context: this block adds transition connecting the last left state w/ the first right state 
         start = t.transitions[-1].end
@@ -125,19 +124,23 @@ def make_context_trans(t):
                          end    = State(end, ctype="right"))
     except IndexError: pass
     
-    for i in range(len(rstates)-1):
+    for i in range(len(rstates)-1): # this block generates right context transitions
         start, end = rstates[i], rstates[i+1]  
         t.add_transition(start  = State(start, ctype="right"),
                          insym  = end[-1],
                          outsym = "λ",
                          end    = State(end, ctype="right"))
         
-        
- 
-    #! prepend q0 transition list:
-    # try to connect q0 to first state, else self loop
+    try: # this block adds initial state to context state transition (if applicable)
+        trans1 = t.transitions[0]
+        q_0 = Transition(start  = State("λ", ctype=trans1.start.ctype),
+                         insym  = str(trans1.start)[0],
+                         outsym = str(trans1.start)[0] if trans1.start.ctype == "left" else "λ",
+                         end    = trans1.start)
+        t.transitions.insert(0, q_0) # prepend to transitions
+    except IndexError: pass
+    
     return t
-
 
 def make_mapping(t):
     return t
@@ -179,8 +182,8 @@ def generate_transitions(mapping, context=""):
     t = Delta(rule)
     
     t = make_context_trans(t)
-    #t = make_prefix_trans(t)
     #t = make_mapping(t)
+    #t = make_prefix_trans(t)
     #t = make_PH_trans(t)
     return t
 
