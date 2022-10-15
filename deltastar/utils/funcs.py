@@ -10,16 +10,21 @@ class RuleError(Exception):
 PH = "?" 
 cfx = lambda string: f"<{string}>" 
     
-def despace(l:Iterable)->str:
+def despace(l:Iterable) -> str:
     return "".join([c for c in l if c != " "])
 
-def join(l:Iterable)->str:
-    return " ".join(l)
+def remove_duplicate_states(states:list):
+    """Removes duplicate states from a list of states by checking their labels"""
+    for state_1 in states:
+        for state_2 in states:
+            if state_2 != state_1 and state_1.label == state_2.label:
+                states.remove(state_2)     
+    return states
 
 
 
 
-#! deprecated (and gross) functions from first release
+#! deprecated functions from first release
 # def intersperse(string:str, delim=" "):
 #     """This mess of a function intersperses a string with delim. Accounts for tag format as well: [XXX].
 

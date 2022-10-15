@@ -38,6 +38,7 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 ## Possible additions or random ideas: 
 
 - Implement basic string acceptors?
+- subsequence transducer: "s -> sh / _ .. sh"?
 
 
 ## Notes
