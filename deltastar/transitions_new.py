@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from utils.funcs import despace, remove_duplicate_states
+from utils.funcs import despace, remove_duplicate_states, subtract_lcon
 from pipe import select, where
 from more_itertools import windowed
 
@@ -9,7 +9,6 @@ lam = "λ" # so I dont have to constantly track down this symbol
 class State:
     label:tuple
     ctype:str = ""
-    seen_lcon:str = ""
     output:str = ""
     is_initial:bool = False
     
@@ -61,7 +60,7 @@ class Rule:
             rcon = (self.X + " " + context[1][:-1].strip()) if context[1] else ""
             rcon = (lcon + " " + rcon) if self.ctype == "dual" else rcon # combines lcon+rcon for dual context state labels
             rstates = [State(label, ctype="right", output=label) for label in get_labels(rcon.split())] 
-            
+        
         q_0 = [State((lam,), is_initial=True)]
         # due to combining lcon+rcon above, states with duplicate labels are made. Need to remove them.
         return remove_duplicate_states(q_0 + lstates + rstates) 
@@ -122,15 +121,17 @@ def make_context_trans(d):
     return d
 
 def modify_state_outputs(d):
+    """If rule is a dual context, right states need have the last seen left context subtracted from their output"""
     
-    delta_ctype = d.rule.ctype
-    for transition in d.transitions:
+    if d.rule.ctype == "dual":
+        # grab last transition with left state
+        last_left_state = list(d.transitions | where(lambda x: x.start.ctype == "left"))[-1]
+        seen_lcon = last_left_state.start.label
         
-        if delta_ctype == "right":
-            pass
-        
-        elif delta_ctype == "dual":
-            pass 
+        for trans in d.transitions:
+            end = trans.end
+            if end.ctype == "right":
+                end.output = subtract_lcon(end.label, seen_lcon)
     return d
 
     
@@ -172,7 +173,7 @@ def generate_transitions(mapping, context=""):
     d = Delta(rule)
     
     d = make_context_trans(d)
-    #d = modify_state_outputs(d)
+    d = modify_state_outputs(d)
     #d = make_prefix_trans(d)
     #d = make_PH_trans(d)
     return d
@@ -180,9 +181,12 @@ def generate_transitions(mapping, context=""):
 #t1 = generate_transitions(("x", "b"), "a a a c a b _")
 #t1.display_transitions()
 
-t2 = generate_transitions(("m", "n"), "a b c _ x y z")
-t2.display_transitions()
+t2 = generate_transitions(("m", "n"), "a b c _ x y z g h j")
 
+for tran in t2.transitions:
+    print(tran.end.ctype)
+    print("Transition: ", tran)
+    print(f"{tran.start=}, {tran.start.output=}\n{tran.end=}, {tran.end.output=}\n\n")
 
 
  

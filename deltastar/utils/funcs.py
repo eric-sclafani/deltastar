@@ -21,6 +21,9 @@ def remove_duplicate_states(states:list):
                 states.remove(state_2)     
     return states
 
+def subtract_lcon(rcon:tuple, lcon:tuple):
+    return rcon[len(lcon):]
+
 
 
 
@@ -59,20 +62,6 @@ def remove_duplicate_states(states:list):
     
 #     return output.strip(delim)
 
-
-# def string_complement(s1, s2, pad=None):
-#     """Performs the relative complement operation on two strings."""
-    
-#     if pad == "right":
-#         s2 = s2.rjust(len(s1), " ")
-#     elif pad == "left":
-#         s2 = s2.ljust(len(s1), " ")
-    
-#     output = ""
-#     for i, s in enumerate(s1):
-#         if s != s2[i]:
-#             output += s
-#     return output
     
 
 
