@@ -1,346 +1,168 @@
-# -*- coding: utf8 -*-
-
-# this file contains functions for parsing the user's specified rewrite rule(s) and 
-# generating the appropriate transitions based off of contexts
-
-from collections import defaultdict
 from dataclasses import dataclass
-from utils.funcs import PH, string_complement, despace
+from utils.funcs import despace, remove_duplicate_states, subtract_lcon
+from pipe import select, where
+from more_itertools import windowed
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constructors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-@dataclass(frozen=True) 
-class State:
-    
-    label:str
-
-    def __len__(self):
-        return len(self.label)
-
-    def __repr__(self):
-        return self.label
-    
-    def __getitem__(self, idx):
-        string = self.label
-        if isinstance(idx, slice): # idx is a slice object in this case
-            start,stop,step = idx.indices(len(string))
-            return "".join([string[i] for i in range(start,stop,step)])
-        else:
-            return string[idx]
-
-
+lam = "λ" # so I dont have to constantly track down this symbol
+PH = "?" # placeholder
 
 @dataclass
-class Edge:
+class State:
+    label:tuple
+    ctype:str = ""
+    output:str = ""
+    is_initial:bool = False
     
+    def __repr__(self):
+        return despace(self.label)
+ 
+@dataclass
+class Edge:
     start:State
     insym:str
     outsym:str
     end:State
-    ctype:str = None # context type (left, right, or dual)
-    is_transduction:bool = False 
-    seen_Lcon:str = ""
+    is_mapping:bool=False
     
     def __repr__(self):
-        return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"   
+        return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
-def parse_contexts(contexts):
-   
-    Lcons, Rcons, Dualcons = [],[],[]
-    for con in contexts:
-        con = tuple(con.split())
-        
-        # this block sorts contexts into their respective lists
-        if con[-1] =="_":
-            Lcons.append(con)
-        elif con[0] == "_":
-            Rcons.append(con)
-        else:
-            Dualcons.append(con)
-            
-    return Lcons, Rcons, Dualcons
-
-
-
-def cf_transitions(insyms, outsyms,q0="λ"):
+class Transitions:
+    """This constructor holds all transitions and methods for accessing transition properties"""
     
-    # all CF transitions are self loops on initial state
-    t = []
-    for _in, _out in zip (insyms, outsyms): 
-        t.append(Edge(State(q0),_in, _out, State(q0), ctype="cf"))
+    def __init__(self, states, X, Y, context, ctype, mtype):
+        self.states = states
+        self.X = X
+        self.Y = Y
+        self.context = context
+        self.ctype = ctype
+        self.mtype = mtype # mapping type (rewrite, insertion, or deletion)
+        self.transitions = []
         
-    t.append(Edge(State(q0),PH, PH, State(q0), ctype="cf"))
-    return t
-    
-    
-    
-def Lcon_transitions(insyms, outsyms, contexts, q0="λ", dual=False):
-    
-    t = []
-    for context in contexts:
-        
-        # fixes an annoying bug w.r.t left vs. dual context transition generation
-        con = context[:-1] if not dual else context
-        for _in, _out in zip(insyms, outsyms):
-            start = q0
-            end = ""     
-            ctype = "left"        
-            
-            for sym in con:                        
-                end += sym # build the next state symbol by symbol 
-                t.append(Edge(State(start), sym, sym, State(end), ctype=ctype))
-                t.append(Edge(State(start), PH, PH, State(q0), ctype=ctype))
-                 
-                start = end # update start state
-            
-            t.append(Edge(State(start), _in, _out, State(q0), ctype=ctype, is_transduction=True)) 
-            t.append(Edge(State(start), PH, PH, State(q0),  ctype=ctype))   
-    return t
-
-
-
-def Rcon_transitions(insyms, outsyms, contexts, q0="λ", Lcon=[],dual=False):
-   
-    t = []
-    for context in contexts:
-        for _in, _out in zip(insyms, outsyms):
-            
-            # transition generation depend on if its strictly right or dual context 
-            if dual:
-                leftcon = "".join(Lcon[0]) # join the left context to subtract it later in this func
-                con = context
-                ctype = "dual"
-                start = leftcon
-                end = leftcon
-            else:
-                con = context[1:]
-                ctype = "right"
-                start = q0
-                end = ""
-                
-            right_context = (_in,) + con # input symbol is always the first contextual transition. context is a tuple, so cast _in as a tuple and concat
-            for sym in right_context[:-1]: # rightmost symbol is treated as the input for the transduction
-                end += sym 
-                
-                # get the left context that was already pushed to the output tape
-                seen_Lcon = leftcon if dual else None
-                
-                 # all transitions moving to the right will output the empty string ("λ")
-                t.append(Edge(State(start), sym, "λ", State(end), ctype=ctype, seen_Lcon=seen_Lcon))
-                 
-                output = start 
-                if start == q0: # initial state gets a PH:PH transition
-                    t.append(Edge(State(start), PH,PH, State(q0), ctype=ctype)) 
-                      
-                # if unknown symbol, need to output the state name along with PH symbol
-                # for dual contexts, subtract the left context that has already been output
-                output = string_complement(start, leftcon, pad="left") if dual else start if start != "λ" else ""
-                    
-                t.append(Edge(State(start), PH, (output + PH), State(q0), ctype=ctype)) 
-                start = end
-                
-            # reached the end of the context
-            # transduction handling is a little different because its not part of the context
-            
-            # for dual contexts PH transitions, subtract the left context that has already been output
-            output = string_complement(start, leftcon, pad="left") if dual else start 
-        
-            # transduction: output out symbol + state name   
-            mapping = _out + "".join(con) 
-        
-            t.append(Edge(State(start), right_context[-1], mapping, State(q0), ctype=ctype, is_transduction=True, seen_Lcon=seen_Lcon)) 
-            t.append(Edge(State(start), PH, (output + PH), State(q0), ctype=ctype))      
-                
-    return t
-
-
-
-def Dcon_transitions(insyms, outsyms, contexts,q0="λ"):
-
-    t = []
- 
-    for context in contexts:
-        underscore = context.index("_")
-        left_context = [context[:underscore]]
-        right_context = [context[underscore+1:]]
-        
-        left_trans = [con for con in Lcon_transitions(insyms, outsyms, left_context, q0, dual=True) if not con.is_transduction] # filter out transduction transitions
-        right_trans = Rcon_transitions(insyms, outsyms, right_context, Lcon=left_context, dual=True)
-        dual_trans = left_trans + right_trans
-       
-        t.extend(dual_trans)  
-    return t
-
-
-
-def prefix_transitions(context_trans, transduction_envs):
-    
-    Q, sigma, _ = get_Q_sigma_gamma(context_trans)
-    Q.remove(State("λ")) # remove λ state 
-    sigma = list(sigma)
-    sigma.remove(PH) # remove PH symbol from sigma since it doesnt have prefix transitions
-    finals = get_final_mappings(context_trans)
-    transitions_to_add = []  
-
-    for q in Q:
-        q = q.label
-        
-        # exclude the first symbol because first symbol marks beginning of a "branch" of states (i.e. all states branching from state <a> begin with an "a")
-        # this also lets us jump from one "branch" to another (i.e. <b> branch, <c> branch, etc..)
-        pfxstate = q[1:]
-        possible_prefix_trans = []
-        
-        # generate all possible prefix transitions for each state in Q by combining the prefix with all symbols in sigma
-        for _ in range(len(pfxstate)+1):
-            possible_prefix_trans.extend([Edge(State(q), PH, PH, State(pfxstate + s)) for s in sigma])
-            pfxstate = pfxstate[1:]
-               
-        for ppt in possible_prefix_trans:
-            
-            if ppt.end in Q: # disregard states that dont exist
-                
-                # find all already existing transitions that have ppt.start as a start state  
-                matched_trans = [ct for ct in context_trans if ct.start == ppt.start and ct.insym != PH]
-                
-                # get the last seen symbol to be used in the added prefix transition
-                last_seen_symbol = str(ppt.end) if ppt.end[-1] == "]" else ppt.end[-1] # tag handling         
-                
-                # for each matched transition, find out if it already has a transition with the last seen symbol,
-                symbol_seen = []
-                for mt in matched_trans: 
-                    if mt.insym == last_seen_symbol and not mt.is_transduction:
-                        symbol_seen.append(mt)
-                      
-                # modify the transition output depending on the matched transition's context type and append to transitions_to_add
-                if not symbol_seen:
-                    for match in matched_trans:
-                        ctype = match.ctype
-                        lcon = match.seen_Lcon
-                        output = last_seen_symbol
-                        is_transduction = False
-                    
-                        if ctype == "dual":
-                            
-                            if ppt.start.label != ppt.end.label:
-                                
-                                # check if the state doesn't have an output (i.e., if its left context)
-                                if not finals[ppt.end]:
-                                    output = string_complement(ppt.start, lcon, pad="left") +  ppt.end.label 
-                                else:
-                                    output = string_complement(ppt.start, lcon, pad="left") + "λ"
-                                
-                        elif ctype == "right":
-                            
-                            # self loops should only get last_seen_symbol. Otherwise, concatenate state name with last_seen_symbol
-                            if ppt.start.label != ppt.end.label:
-                                
-                                outsym = ppt.start.label + last_seen_symbol
-                                
-                                # important line: when going to a right context state, we dont want to send the entire outsym to the output tape
-                                output = string_complement(outsym, ppt.end.label, pad="right")
-                                
-                                for env, out_mapping in transduction_envs.items():
-                                    env = despace(env)
-                                    
-                                    # checks to see if the prefix trans output also creates an environment for a transduction 
-                                    if outsym.endswith(env) and outsym != env: 
-                                        output = output[:-1] + out_mapping    
-                            output += "λ"
-                                
-                        # this block handles the transduction transition, i.e., whether the transduction should point to a prefix state, or q0      
-                        find_mapping = [t for t in matched_trans if t.is_transduction]
-                        if match in find_mapping and match.insym == last_seen_symbol:
-                            is_transduction = True # setting this lets the already existing PH transduction get overwritten in make_delta()                           
-                            output = match.outsym
-                            
-                            # transduction prefix transitions can get dicey. When ctype == right, need to subtract the end state from the output symbol
-                            if ctype == "right":
-                                output = string_complement(match.outsym, ppt.end.label, pad="right") 
-                              
-                            if ctype == "dual":
-                                if finals[ppt.end]:
-                                    output = output[:-1]
-                                    
-                                    #! possibly volatile conditional
-                                    # edge case: self loop on transduction transition and last symbol of output matches the last symbol seen
-                                    # if output[-1] == ppt.end.label[-1]:
-                                    #     output = output[0]
-                                
-                            if ctype != "left":  
-                                output += "λ" # the lambda represents going into a state where you don't send a symbol to output tape  
-                                   
-                        # if the prefix transduction has already been made, dont let any more possible prefix transductions into transitions_to_add
-                        if ppt.is_transduction and not list(filter(lambda t: t.is_transduction, transitions_to_add)):
-                            continue
-                        
-                        transitions_to_add.append(Edge(ppt.start, last_seen_symbol, output, ppt.end, is_transduction=is_transduction))
-        
-    return transitions_to_add 
-
-
-
-def get_Q_sigma_gamma(trans):
-    
-    Q = []
-    for t in trans:
-        if t.start not in Q:
-            Q.append(t.start)
-    
-    sigma = set(t.insym for t in trans)
-    gamma = set(t.outsym for t in trans) 
-    return Q, sigma, gamma 
-
-      
+    def rule(self):
+        context = "_" if not self.context else self.context
+        return f"{self.X} -> {self.Y} / {context}"
          
-def get_final_mappings(trans):
+    def get_sigma(self):
+        insyms = set(self.transitions | select(lambda x: x.insym))
+        insyms.add(self.X)
+        return insyms
     
-    d = {State("λ"): ""}
-    for t in trans:
-        if t.start not in d and t.start.label != "λ":
-            if t.ctype == "left":
-                output = ""
-            
-            elif t.ctype == "right":
-                output = t.start.label
-
-            elif t.ctype == "dual":
-                output = string_complement(t.start.label, t.seen_Lcon , pad="left")
-            
-            d[t.start] = output
-    return d
-
-
-
-def get_transitions(insyms, outsyms, contexts=[], transduction_envs=[]):
+    def state_exists_with_insym(self, state_label, pfxsym):
+        # if this list is ever populated, then state already has an outgoing arc with pfxsym
+        match_found = list(self.transitions | where(lambda x: x.start.label == state_label and x.insym == pfxsym))
+        return True if match_found else False
     
-    context_trans = [] # list of all context transitions 
-    Lcons, Rcons, Dualcons= parse_contexts(contexts)
-    
-    if not contexts:
-        context_trans += cf_transitions(insyms, outsyms)
-    if Lcons:
-        context_trans += Lcon_transitions(insyms, outsyms, Lcons)  
-    if Rcons:
-        context_trans += Rcon_transitions(insyms, outsyms, Rcons)  
-    if Dualcons:
-        context_trans += Dcon_transitions(insyms, outsyms, Dualcons)
-    
-    all_trans = context_trans + prefix_transitions(context_trans, transduction_envs)
-    
-    return all_trans
-
-    
-    
-def get_delta(trans):
-    
-    d = defaultdict(lambda: defaultdict(dict))
-    for tran in trans:
-        start, insym = tran.start, tran.insym
-        end, outsym = tran.end, tran.outsym 
+    def add_edge(self, start, insym, outsym, end, is_mapping=False):
+        self.transitions.append(Edge(start, insym, outsym, end, is_mapping))
         
-        # allows the PH transduction to be overwritten by the prefix one once
-        if not d[start][insym] or tran.is_transduction and d[start][insym][1] == State("λ"): 
-            d[start][insym] = [outsym, end] 
-    return d
+    def display_transitions(self):
+        print(*self.transitions, sep="\n")
+              
+def parse_rule(mapping, context=""):
+    X, Y = mapping
+    ctype = "cf"
+    if context: 
+        context_list = context.split()
+        index = context_list.index("_")
+        ctype = "left" if index == len(context_list)-1 else "right" if index == 0 else "dual"
+            
+    mtype = "delete" if not Y else "insert" if not X else "rewrite" 
+    return X, Y, context, ctype, mtype
+    
+def extract_states(context:str, ctype:str, X:str):
+        
+        lstates, rstates = [], [] # need this declaration since they may be empty (strictly left or right context)
+        get_labels = lambda x: [tuple(x[0:j]) for j in range(1, len(x)+1)] 
+        context = context.split("_")
+        
+        if ctype in ["left", "dual"]:
+            lcon = context[0].strip() if context[0] else ""
+            lstates = [State(label, ctype="left") for label in get_labels(lcon.split())]
+            
+        if ctype in ["right", "dual"]:
+            rcon = (X + " " + context[1][:-1].strip()) if context[1] else ""
+            rcon = (lcon + " " + rcon) if ctype == "dual" else rcon # combines lcon+rcon for dual context state labels
+            rstates = [State(label, ctype="right", output=label) for label in get_labels(rcon.split())] 
+        
+        q_0 = [State((lam,), is_initial=True)]
+        # due to combining lcon+rcon above, states with duplicate labels are made. Need to remove them.
+        return remove_duplicate_states(q_0 + lstates + rstates)
+    
+
+def make_context_trans(t, states):
+    
+    if len(states) == 1: # cf has no context trans
+        return t
+    
+    for start, end in windowed(states, n=2):
+        insym = end.label[-1]
+        outsym = end.label[-1] if end.ctype == "left" else lam
+        t.add_edge(start = start,
+                   insym = insym,
+                   outsym = outsym,
+                   end = end)
+    return t
+
+def modify_state_outputs(t):
+    """If rule is a dual context, right states need have the left context subtracted from their output"""
+    
+    if t.ctype == "dual":
+        # grab last transition with left state
+        last_left_state = list(t.transitions | where(lambda x: x.start.ctype == "left"))[-1]
+        seen_lcon = last_left_state.start.label
+        
+        for trans in t.transitions:
+            end = trans.end
+            if end.ctype == "right":
+                end.output = subtract_lcon(end.label, seen_lcon)
+    return t
+
+    
+def make_prefix_trans(t, states):
+    
+    state_labels = list(states | select(lambda x: x.label))
+    for label in state_labels:
+        pfxstate = label[1:]
+        while True:
+            pfxstates = [pfxstate + (s,) for s in t.get_sigma() if pfxstate + (s,) in state_labels]
+            for state in pfxstates:
+                pfxsym = state[-1]
+        
+            if not pfxstate:
+                break
+            
+            print(f"Current state: {label}")
+            print(f"Pfxstates: {pfxstates}\n")
+            pfxstate = pfxstate[1:]
+    return t
+
+
+def make_PH_trans(t):
+    return t
+    
+
+def generate_transitions(mapping, context=""):
+    
+    X, Y, context, ctype, mtype = parse_rule(mapping, context)
+    states = extract_states(context, ctype, X)
+    t = Transitions(states, X, Y, context, ctype, mtype)
+    
+    t = make_context_trans(t, states)
+    t = modify_state_outputs(t)
+    #t = make_prefix_trans(t)
+    #t = make_PH_trans(t)
+    return t
+
+t1 = generate_transitions(("x", "b"), "a c a b _")
+t1.display_transitions()
+
+#t2 = generate_transitions(("m", "n"), "a b c _ x y zsl")
+
+#! state output testing code
+# for tran in t2.transitions:
+#     print(tran.end.ctype)
+#     print("Transition: ", tran)
+#     print(f"{tran.start=}, {tran.start.output=}\n{tran.end=}, {tran.end.output=}\n\n")
+
 
