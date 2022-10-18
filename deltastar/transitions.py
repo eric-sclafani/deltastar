@@ -154,15 +154,14 @@ def generate_transitions(mapping, context=""):
     #t = make_PH_trans(t)
     return t
 
-t1 = generate_transitions(("x", "b"), "a c a b _")
-t1.display_transitions()
+#t1 = generate_transitions(("x", "b"), "a c a b _")
 
-#t2 = generate_transitions(("m", "n"), "a b c _ x y zsl")
+t2 = generate_transitions(("m", "n"), "a b c _ x y zsl")
 
 #! state output testing code
-# for tran in t2.transitions:
-#     print(tran.end.ctype)
-#     print("Transition: ", tran)
-#     print(f"{tran.start=}, {tran.start.output=}\n{tran.end=}, {tran.end.output=}\n\n")
+for tran in t2.transitions:
+    print(tran.end.ctype)
+    print("Transition: ", tran)
+    print(f"{tran.start=}, {tran.start.output=}\n{tran.end=}, {tran.end.output=}\n\n")
 
 
