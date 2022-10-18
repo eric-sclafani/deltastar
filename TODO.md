@@ -4,7 +4,8 @@ This file contains personal notes, planned additions, random ideas, etc..
 
 ## Currently working on:
 
-- rework transition code
+- re-implement prefix transitions
+- get rid of Rule class (no need for it)
 
 ## The Great Refactoring:
 I plan to refactor the code base to be more `scalable`, `readable`, and `modular`. Changes include, but not limited to:
@@ -38,7 +39,7 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 ## Possible additions or random ideas: 
 
 - Implement basic string acceptors?
-- subsequence transducer: "s -> sh / _ .. sh"?
+- subsequence transducer: "s -> sh / _ .. sh"? (use a stack or queue?)
 
 
 ## Notes
