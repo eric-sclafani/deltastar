@@ -94,7 +94,6 @@ def make_context_trans(t, states):
     
     if len(states) == 1: # cf has no context trans
         return t
-    
     for start, end in windowed(states, n=2):
         insym = end.label[-1]
         outsym = end.label[-1] if end.ctype == "left" else lam
@@ -104,13 +103,13 @@ def make_context_trans(t, states):
                    end = end)
     return t
 
-def modify_state_outputs(t):
+def modify_state_outputs(t, states):
     """If rule is a dual context, right states need have the left context subtracted from their output"""
     
     if t.ctype == "dual":
         # grab last transition with left state
-        last_left_state = list(t.transitions | where(lambda x: x.start.ctype == "left"))[-1]
-        seen_lcon = last_left_state.start.label
+        last_left_state = list(states | where(lambda x: x.ctype == "left"))[-1]
+        seen_lcon = last_left_state.label
         
         for trans in t.transitions:
             end = trans.end
@@ -118,12 +117,12 @@ def modify_state_outputs(t):
                 end.output = subtract_lcon(end.label, seen_lcon)
     return t
 
-    
 def make_prefix_trans(t, states):
     
     state_labels = list(states | select(lambda x: x.label))
+    print(f"States: {state_labels}")
     for label in state_labels:
-        pfxstate = label[1:]
+        pfxstate = label[1:] if len(label) > 1 else ("",)
         while True:
             pfxstates = [pfxstate + (s,) for s in t.get_sigma() if pfxstate + (s,) in state_labels]
             for state in pfxstates:
@@ -132,8 +131,7 @@ def make_prefix_trans(t, states):
             if not pfxstate:
                 break
             
-            print(f"Current state: {label}")
-            print(f"Pfxstates: {pfxstates}\n")
+            print(f"Current state: {label} Pfxstates: {pfxstates}")
             pfxstate = pfxstate[1:]
     return t
 
@@ -149,19 +147,17 @@ def generate_transitions(mapping, context=""):
     t = Transitions(states, X, Y, context, ctype, mtype)
     
     t = make_context_trans(t, states)
-    t = modify_state_outputs(t)
-    #t = make_prefix_trans(t)
+    t = modify_state_outputs(t, states)
+    t = make_prefix_trans(t, states)
     #t = make_PH_trans(t)
     return t
 
-#t1 = generate_transitions(("x", "b"), "a c a b _")
+t1 = generate_transitions(("x", "b"), "a c a b _")
 
-t2 = generate_transitions(("m", "n"), "a b c _ x y zsl")
-
-#! state output testing code
-for tran in t2.transitions:
-    print(tran.end.ctype)
-    print("Transition: ", tran)
-    print(f"{tran.start=}, {tran.start.output=}\n{tran.end=}, {tran.end.output=}\n\n")
+#t2 = generate_transitions(("m", "n"), "a b c _ x y z")
+# for tran in t2.transitions:
+#     print(tran.end.ctype)
+#     print("Transition: ", tran)
+#     print(f"{tran.start=}, {tran.start.output=}\n{tran.end=}, {tran.end.output=}\n\n")
 
 
