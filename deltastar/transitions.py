@@ -60,6 +60,8 @@ class Transitions:
         print(*self.transitions, sep="\n")
               
 def parse_rule(mapping, context=""):
+    
+    #! validation will happen here
     X, Y = mapping
     ctype = "cf"
     if context: 
@@ -105,34 +107,37 @@ def make_context_trans(t, states):
 
 def modify_state_outputs(t, states):
     """If rule is a dual context, right states need have the left context subtracted from their output"""
-    
     if t.ctype == "dual":
-        # grab last transition with left state
-        last_left_state = list(states | where(lambda x: x.ctype == "left"))[-1]
-        seen_lcon = last_left_state.label
-        
+        last_left_state = list(states | where(lambda x: x.ctype == "left"))[-1]# grab last transition with left state
         for trans in t.transitions:
             end = trans.end
             if end.ctype == "right":
-                end.output = subtract_lcon(end.label, seen_lcon)
+                end.output = subtract_lcon(end.label, last_left_state.label)
     return t
 
 def make_prefix_trans(t, states):
     
     state_labels = list(states | select(lambda x: x.label))
-    print(f"States: {state_labels}")
+    state_labels.remove((lam,))
+    
     for label in state_labels:
-        pfxstate = label[1:] if len(label) > 1 else ("",)
+        state = label[1:] 
+        pfxstate = ""
         while True:
-            pfxstates = [pfxstate + (s,) for s in t.get_sigma() if pfxstate + (s,) in state_labels]
-            for state in pfxstates:
-                pfxsym = state[-1]
-        
-            if not pfxstate:
+            for s in t.get_sigma():
+                temp = state + (s,)
+                if temp in state_labels and len(temp) <= len(label): # can only go to previous states
+                    if not pfxstate: # disable overriding
+                        pfxstate = temp
+                    
+
+            
+            
+            state = state[1:]
+            if not state and len(temp) == 1:
                 break
             
-            print(f"Current state: {label} Pfxstates: {pfxstates}")
-            pfxstate = pfxstate[1:]
+        print(f"Current state: {label} Pfxstate: {pfxstate}\n")
     return t
 
 
