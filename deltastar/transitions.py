@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from utils.funcs import despace, remove_duplicate_states, subtract_lcon
 from pipe import select, where
 from more_itertools import windowed
@@ -27,17 +27,15 @@ class Edge:
     def __repr__(self):
         return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"
 
+@dataclass
 class Transitions:
     """This constructor holds all transitions and methods for accessing transition properties"""
-    
-    def __init__(self, states, X, Y, context, ctype, mtype):
-        self.states = states
-        self.X = X
-        self.Y = Y
-        self.context = context
-        self.ctype = ctype
-        self.mtype = mtype # mapping type (rewrite, insertion, or deletion)
-        self.transitions = []
+    states:list[State]
+    X:str
+    Y:str
+    context:str
+    mtype:str
+    transitions:list = field(default_factory=list)
         
     def rule(self):
         context = "_" if not self.context else self.context
@@ -48,13 +46,16 @@ class Transitions:
         insyms.add(self.X)
         return insyms
     
-    def state_exists_with_insym(self, state_label, pfxsym):
-        # if this list is ever populated, then state already has an outgoing arc with pfxsym
-        match_found = list(self.transitions | where(lambda x: x.start.label == state_label and x.insym == pfxsym))
-        return True if match_found else False
+    def state_exists_with_insym(self, state_label, insym):
+        # if this list gets populated, then state already has an outgoing arc with insym
+        find_match = list(self.transitions | where(lambda x: x.start.label == state_label and x.insym == insym))
+        return True if find_match else False
     
     def add_edge(self, start, insym, outsym, end, is_mapping=False):
         self.transitions.append(Edge(start, insym, outsym, end, is_mapping))
+        
+    def to_dict(self):
+        pass
         
     def display_transitions(self):
         print(*self.transitions, sep="\n")
@@ -72,7 +73,7 @@ def parse_rule(mapping, context=""):
     mtype = "delete" if not Y else "insert" if not X else "rewrite" 
     return X, Y, context, ctype, mtype
     
-def extract_states(context:str, ctype:str, X:str):
+def extract_states(context:str, ctype:str, X:str) -> list[State]:
         
         lstates, rstates = [], [] # need this declaration since they may be empty (strictly left or right context)
         get_labels = lambda x: [tuple(x[0:j]) for j in range(1, len(x)+1)] 
@@ -105,9 +106,9 @@ def make_context_trans(t, states):
                    end = end)
     return t
 
-def modify_state_outputs(t, states):
+def modify_state_outputs(t, states, ctype):
     """If rule is a dual context, right states need have the left context subtracted from their output"""
-    if t.ctype == "dual":
+    if ctype == "dual":
         last_left_state = list(states | where(lambda x: x.ctype == "left"))[-1]# grab last transition with left state
         for trans in t.transitions:
             end = trans.end
@@ -120,16 +121,17 @@ def make_prefix_trans(t, states):
     state_labels = list(states | select(lambda x: x.label))
     state_labels.remove((lam,))
     
-    for label in state_labels:
+    for i, label in enumerate(state_labels):
         state = label[1:] 
-        pfxstate = ""
+        pfxstate = None
         while True:
             for s in t.get_sigma():
                 temp = state + (s,)
-                if temp in state_labels and len(temp) <= len(label): # can only go to previous states
-                    if not pfxstate: # disable overriding
+                if temp in state_labels and len(temp) <= len(label) and not t.state_exists_with_insym(label, s):
+                    if not pfxstate: # prevents overriding
                         pfxstate = temp
                     
+                    #! next step: need to handle mapping
 
             
             
@@ -149,10 +151,10 @@ def generate_transitions(mapping, context=""):
     
     X, Y, context, ctype, mtype = parse_rule(mapping, context)
     states = extract_states(context, ctype, X)
-    t = Transitions(states, X, Y, context, ctype, mtype)
+    t = Transitions(states, X, Y, context, mtype)
     
     t = make_context_trans(t, states)
-    t = modify_state_outputs(t, states)
+    t = modify_state_outputs(t, states, ctype)
     t = make_prefix_trans(t, states)
     #t = make_PH_trans(t)
     return t
