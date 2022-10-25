@@ -40,8 +40,7 @@ I plan to refactor the code base to be more `scalable`, `readable`, and `modular
 
 - Implement basic string acceptors?
 - subsequence transducer: "s -> sh / _ .. sh"? (use a stack or queue?)
-- add an option to instantiate a machine using (input, output) pairs instead of rules (maybe not, actually)
-- add an easy way for users to manually make states and transitions
+- make a custom string rewriting function instead of a simple dict?
 
 
 ## Notes
