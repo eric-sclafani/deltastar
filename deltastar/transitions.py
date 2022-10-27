@@ -70,7 +70,7 @@ def parse_rule(mapping, context=""):
     
     #! validation will happen here
     X, Y = mapping
-    ctype = "cf"
+    trans_ctype = "cf"
     if context: 
         context_list = context.split()
         index = context_list.index("_")
@@ -92,7 +92,7 @@ def extract_states(context:str, trans_ctype:str, X:str) -> list[State]:
         if trans_ctype in ["right", "dual"]:
             rcon = (X + " " + context[1][:-1].strip()) if context[1] else ""
             rcon = (lcon + " " + rcon) if trans_ctype == "dual" else rcon # combines lcon+rcon for dual context state labels
-            rstates = [State(label, state_ctype="right", output=label) for label in get_labels(rcon.split())] 
+            rstates = [State(label, state_ctype="right", output=" ".join(label)) for label in get_labels(rcon.split())] 
         
         q_0 = [State((lam,), is_initial=True)]
         # due to combining lcon+rcon above, states with duplicate labels are made. Need to remove them.
@@ -116,7 +116,7 @@ def modify_state_outputs(t, states, ctype):
         for trans in t.transitions:
             end = trans.end
             if end.state_ctype == "right":
-                end.output = subtract_lcon(end.label, last_left_state.label)
+                end.output = "".join(subtract_lcon(end.label, last_left_state.label))
     return t
 
 def make_prefix_trans(t, states:list[State], trans_ctype):
@@ -132,28 +132,27 @@ def make_prefix_trans(t, states:list[State], trans_ctype):
             for s in t.get_sigma():
                 temp = state + (s,)
                 if temp in state_labels and len(temp) <= len(label) and not t.state_exists_with_insym(label, s):
-                    if not pfxstate: # prevents overriding
+                    #if not pfxstate: # prevents overriding
                         pfxstate = temp
                         start = t.get_state(label)
                         insym = pfxstate[-1]
                         end = t.get_state(pfxstate)
-                        outsym = pfxstate[-1] 
+                        outsym = pfxstate[-1] if start.state_ctype == "left" else start.output
                         
                         # transition into left state from right state
-                        # if trans_ctype == "dual" and start.state_ctype == "right" and end.state_ctype == "left": 
-                        #     outsym += insym
-                        
-                        
-                        prefix_trans.append(Edge(start = start, insym = "X", outsym = "Y", end = end))
-
+                        if trans_ctype == "dual" and start.state_ctype == "right" and end.state_ctype == "left": 
+                            outsym = start.output + insym
+                            
+                        prefix_trans.append(Edge(start = start, insym = insym, outsym = outsym, end = end))
+                
             
             
             state = state[1:]
             if not state and len(temp) == 1:
                 break
             
-        print(f"Current state: {label} Pfxstate: {pfxstate}")
-    #print(*prefix_trans, sep="\n")
+        #print(f"Current state: {label} Pfxstate: {pfxstate}")
+    print(*prefix_trans, sep="\n")
     return t
 
 
@@ -174,6 +173,9 @@ def generate_transitions(mapping, context=""):
     return t
 
 t1 = generate_transitions(("a", "b"), "a b c _ a b c")
+
+
+
 
 
 
