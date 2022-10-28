@@ -11,7 +11,6 @@ class State:
     label:tuple
     state_ctype:str = ""
     output:str = ""
-    is_initial:bool = False
     
     def __repr__(self):
         return despace(self.label)
@@ -22,7 +21,6 @@ class Edge:
     insym:str
     outsym:str
     end:State
-    is_mapping:bool=False
     
     def __repr__(self):
         return f"({self.start} | {self.insym} -> {self.outsym} | {self.end})"
@@ -94,7 +92,7 @@ def extract_states(context:str, trans_ctype:str, X:str) -> list[State]:
             rcon = (lcon + " " + rcon) if trans_ctype == "dual" else rcon # combines lcon+rcon for dual context state labels
             rstates = [State(label, state_ctype="right", output=" ".join(label)) for label in get_labels(rcon.split())] 
         
-        q_0 = [State((lam,), is_initial=True)]
+        q_0 = [State((lam,))]
         # due to combining lcon+rcon above, states with duplicate labels are made. Need to remove them.
         return remove_duplicate_states(q_0 + lstates + rstates)
     
@@ -124,16 +122,13 @@ def make_prefix_trans(t, states:list[State], trans_ctype):
     state_labels = list(states | select(lambda x: x.label) 
                                | where(lambda x: x != (lam,))) # dont want to process initial state
 
-    prefix_trans = []
+    prefix_trans = [] # this list is only for debugging
     for label in state_labels:
         state = label[1:] 
-        pfxstate = None
         while True:
             for s in t.get_sigma():
-                temp = state + (s,)
-                if temp in state_labels and len(temp) <= len(label) and not t.state_exists_with_insym(label, s):
-                    #if not pfxstate: # prevents overriding
-                        pfxstate = temp
+                pfxstate = state + (s,)
+                if pfxstate in state_labels and len(pfxstate) <= len(label) and not t.state_exists_with_insym(label, s):
                         start = t.get_state(label)
                         insym = pfxstate[-1]
                         end = t.get_state(pfxstate)
@@ -143,12 +138,12 @@ def make_prefix_trans(t, states:list[State], trans_ctype):
                         if trans_ctype == "dual" and start.state_ctype == "right" and end.state_ctype == "left": 
                             outsym = start.output + insym
                             
-                        prefix_trans.append(Edge(start = start, insym = insym, outsym = outsym, end = end))
+                        t.add_edge(start = start, insym = insym, outsym = outsym, end = end)
+                        prefix_trans.append(Edge(start = start, insym = insym, outsym = outsym, end = end)) # debugging purposes
                 
             
-            
             state = state[1:]
-            if not state and len(temp) == 1:
+            if not state and len(pfxstate) == 1:
                 break
             
         #print(f"Current state: {label} Pfxstate: {pfxstate}")
@@ -172,7 +167,10 @@ def generate_transitions(mapping, context=""):
     #t = make_PH_trans(t)
     return t
 
-t1 = generate_transitions(("a", "b"), "a b c _ a b c")
+t1 = generate_transitions(("a", "b"), "a a b a c _ ")
+
+
+
 
 
 
